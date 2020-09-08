@@ -1,0 +1,18 @@
+PyQt5 Starting Points:
+https://pythonspot.com/gui/
+
+setup.py:
+https://docs.python.org/3/distutils/setupscript.html
+https://github.com/navdeep-G/setup.py
+
+Multimedia:
+https://www.learnpyqt.com/examples/failamp-multimedia-player/
+
+Qt5 Broken URLs with Spaces:
+https://bugreports.qt.io/browse/QTBUG-84585
+
+Mac High DPI Support:
+https://github.com/andlabs/ui/issues/65
+
+Clickable QLabel:
+https://pastebin.com/Vaxg99P1

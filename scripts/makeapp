@@ -1,0 +1,120 @@
+#!/bin/bash
+
+showUsage() {
+    BASENAME=$(basename $0)
+    echo -e "Usage: $BASENAME <path to executable> [options]"
+    echo -e "Options:"
+    echo -e "\t-o <path to .app>\tApplication path to write to"
+    echo -e "\t--id <bundle identifier>\tSpecify bundle identifier"
+	echo -e "\t--version <version number>\tSpecify version number"
+    echo -e "\t--icon <path to .icns>\tSpecify an app icon to embed"
+}
+
+if [ -z "$1" ]; then
+    showUsage
+    exit
+fi
+
+checkNext() {
+    if [ -z "$next" ]; then
+        showUsage
+        exit
+    fi
+}
+
+for ((i=2; i<=$#; i++)); do
+	current=${!i}
+    inc=$((i+1))
+	next=${!inc}
+
+	if [ "${current}" == "-o" ]; then
+		checkNext
+		appPath=$next
+	elif [ "${current}" == "--id" ]; then
+		checkNext
+		bundleID=$next
+	elif [ "${current}" == "--version" ]; then
+		checkNext
+		version=$next
+	elif [ "${current}" == "--icon" ]; then
+		checkNext
+		iconPath=$next
+		echo $iconPath
+	fi
+done
+
+execPath="$1"
+appName=$(basename $execPath)
+if [ -z "$appPath" ]; then
+    appPath="$execPath.app"
+fi
+
+info="$(
+cat << EOF 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>*</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>NSStringPboardType</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>****</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>$appName</string>
+	<key>CFBundleGetInfoString</key>
+	<string>$appName $version</string>
+	<key>CFBundleIconFile</key>
+	<string>$iconPath</string>
+	<key>CFBundleIdentifier</key>
+	<string>$BUNDLEIDENTIFIER</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$appName</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$VERSION</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$VERSION</string>
+	<key>NSHighResolutionCapable</key>
+	<string>True</string>
+</dict>
+</plist>
+EOF
+)"
+
+macos=$appPath/Contents/MacOS
+mkdir -p $macos
+cp $execPath $macos
+chmod +x $macos/$appName
+
+if [ -n "$iconPath" ]; then
+    resources=$appPath/Contents/Resources
+    mkdir -p $resources
+    cp $iconPath $resources
+else
+	iconPath=$appName.icnss
+fi
+
+echo $info > $appPath/Contents/info.plist
+echo "Wrote to app: $appPath"
+
+exit
