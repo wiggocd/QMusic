@@ -1,3 +1,4 @@
+shiboken2==5.14.0
 PySide2==5.14
 # audio-metadata
 # nuitka
