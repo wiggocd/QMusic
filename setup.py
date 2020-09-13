@@ -117,13 +117,13 @@ def get_about():
     return about
 
 def run_py():
-    os.system(interpreter+" "+SRCFILE)
+    os.system(interpreter + " " + SRCFILE)
 
 def run_exec():
     os.system(OUTFILE)
 
 def run_macos():
-    os.system("open "+OUTAPP)
+    os.system("open " + "\"OUTAPP\"")
 
 def clean_build():
     if os.path.isdir(BUILDDIR_PYTHON):
@@ -154,7 +154,7 @@ def clean_all():
     clean_egginfo()
 
 def makeapp():
-    os.system(os.path.join(SCRIPTSDIR, "makeapp")+" "+OUTFILE+" -o "+OUTAPP)
+    os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
 
 
 # Custom commands

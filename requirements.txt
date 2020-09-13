@@ -1,4 +1,4 @@
 PySide2==5.14
-audio-metadata
+# audio-metadata
 # nuitka
 # pyinstaller

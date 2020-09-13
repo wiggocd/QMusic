@@ -15,7 +15,6 @@ def get_resourcepath(resourceName: str, execpath: str) -> str:
     return os.path.join(os.path.dirname(execpath), "resources", resourceName)
 
 def to_hhmmss(ms: int) -> str:
-    #   Synopsis:
     #   -   s = ms / 1000 rounded
     #   -   m and s = s modulo 60
     #   -   h and m = m modulo 60
@@ -28,7 +27,6 @@ def to_hhmmss(ms: int) -> str:
     return ("%d:%02d:%02d" % (h, m, s)) if h else ("%d:%02d" % (m, s))
 
 def get_coverart(directoryPath: str) -> Union[str, None]:
-    #   Synopsis:
     #   -   Loop through directory entries from listdir method, check if extension is an image, if so append to a list
     #   -   Loop through the list and if an entry contains a cover art keyword, return the path to the image
 
@@ -47,16 +45,24 @@ def get_coverart(directoryPath: str) -> Union[str, None]:
 
     return None
 
-def get_filepath(url: QtCore.QUrl) -> str:
-    urlString = url.toString()
-    return urlString.split("file://")[1]
+def urlStringToPath(urlString: str) -> str:
+    #   If url begins with the file prefix, return all of the url string after the third slash if there is a colon signifying a Windows environment, otherwise return before the third slash (Unix)
+
+    path = ""
+    if urlString.startswith("file://"):
+        separator_index = 8 if urlString[9] == ':' else 7
+        path = urlString[separator_index:]
+    else:
+        path = urlString
+
+    return path
+
 
 #
 #   Revise
 #
 
 class PlaylistModel(QtCore.QAbstractListModel):
-    #   Synopsis:
     #   init:
     #       -   Call init from super
     #       -   Set playlist from argument
@@ -80,7 +86,6 @@ class PlaylistModel(QtCore.QAbstractListModel):
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    #   Synopsis:
     #   -   init: call init on super, initUI:
     #       -   Set geometry and title
     #       -   Set variable with path to executable to find resources later on
@@ -247,7 +252,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if media.isNull():
             self.coverart_label.hide()
         else:
-            mediaPath = get_filepath(media.canonicalUrl())
+            mediaPath = urlStringToPath(media.canonicalUrl().toString())
             coverart_path = get_coverart(os.path.dirname(mediaPath))
             if coverart_path:
                 self.coverart_label.setPixmap(QtGui.QPixmap(coverart_path).scaledToWidth(self.coverart_width))
@@ -336,7 +341,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
-        shortcut_playpause = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space", "")), self)
+        shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space", "")), self)
+        shortcut_playpause = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaPlay), self)
+        shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
 
     #
@@ -369,7 +376,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
-    #   Main synopsis:
     #   -   Create QApplication and MainWindow
     #   -   Exit on app exec_ method
 
