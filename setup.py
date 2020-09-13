@@ -117,7 +117,7 @@ def get_about():
     return about
 
 def run_py():
-    os.system(interpreter + " " + SRCFILE)
+    os.system(interpreter + " \"" + SRCFILE + "\"")
 
 def run_exec():
     os.system(OUTFILE)
