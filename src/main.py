@@ -265,6 +265,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_metadata(media)
         self.update_coverart(media)
 
+        # If playing, update the play/pause button to the playing state, otherwise set its properties to the paused state
+        if self.isPlaying():
+            self.play()
+        else:
+            self.pause()
+
     def connect_update_media(self):
         # Connect cover art update method to playlist current media changed signal
         self.playlist.currentMediaChanged.connect(self.update_media)
@@ -315,6 +321,9 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(openAction)
 
     def open_file(self):
+        # Set last media count for playlist media check later on
+        self.lastMediaCount = self.playlist.mediaCount()
+        
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open file(s)"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
 
@@ -330,8 +339,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Emit playlist model layout change and play if paused
         self.playlistModel.layoutChanged.emit()
 
-        if self.isPlaying() == False:
-            self.play()
+        # Check new media and play if conditions are met
+        self.playNewMedia()
 
     def isPlaying(self) -> bool:
         if self.player.state() == QtMultimedia.QMediaPlayer.PlayingState:
@@ -354,9 +363,11 @@ class MainWindow(QtWidgets.QMainWindow):
     #   dragEnterEvent (QDragEnterEvent):
     #       -   Call event accept proposed action method if event mime data has urls
     #   dropEvent (QDropEvent):
+    #       -   Set last media count
     #       -   Add media to playlist from urls
     #       -   Emit model layout change
-    #       -   If not playing, play
+    #       -   Call playNewMedia:
+    #           - If not playing and last media count was 0, play
     #
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
@@ -364,14 +375,18 @@ class MainWindow(QtWidgets.QMainWindow):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent):
+        self.lastMediaCount = self.playlist.mediaCount()
+
         for url in event.mimeData().urls():
             self.playlist.addMedia(
                 QtMultimedia.QMediaContent(url)
             )
 
         self.playlistModel.layoutChanged.emit()
+        self.playNewMedia()
 
-        if self.isPlaying() == False:
+    def playNewMedia(self):
+        if self.isPlaying() == False and self.lastMediaCount == 0:
             self.play()
 
 
