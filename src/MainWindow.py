@@ -128,6 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlistView.setModel(self.playlistModel)
         selectionModel = self.playlistView.selectionModel()
         selectionModel.selectionChanged.connect(self.playlist_selection_changed)
+        self.playlistView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         # Accept drag and drop
         self.setAcceptDrops(True)
@@ -303,12 +304,25 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             return False
 
+    #
+    #   Revise
+    #
+
+    def remove_media(self):
+        selectedIndexes = self.playlistView.selectedIndexes()
+        if len(selectedIndexes) > 0:
+            self.playlist.removeMedia(selectedIndexes[0].row(), selectedIndexes[len(selectedIndexes)-1].row())
+            self.playlistModel.layoutChanged.emit()
+
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
-        shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space", "")), self)
+        shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space")), self)
         shortcut_playpause = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaPlay), self)
         shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
+
+        shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Backspace")), self)
+        shortcut_delete.activated.connect(self.remove_media)
 
         if is_admin:
             keyboard.add_hotkey(0x83, self.playpause)
