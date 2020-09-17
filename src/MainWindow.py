@@ -7,10 +7,11 @@ from PySide2 import QtWidgets, QtCore, QtGui, QtMultimedia
 import lib
 import os
 from PlaylistModel import PlaylistModel
+import mutagen
 
-#keyboard: any
-#is_admin = lib.get_admin_status()
-#lib.importKeyboard(is_admin)
+is_admin = lib.get_admin_status()
+if is_admin:
+    import keyboard
 
 class MainWindow(QtWidgets.QMainWindow):
     #   -   init: call init on super, initUI:
@@ -78,6 +79,11 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.metadata_label = QtWidgets.QLabel()
+        self.metadata_label.setStyleSheet(
+            """
+            QLabel {color: #A7A7A7}
+            """
+        )
         self.metadata_label.hide()
 
         self.coverart_label = QtWidgets.QLabel()
@@ -170,9 +176,24 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.play()
 
+    #
+    #   Revise
+    #
+
     def update_metadata(self, media: QtMultimedia.QMediaContent):
         # Todo: if no media is playing, hide the metadata, otherwise set the metadata from the metadata class and set the label text
-        self
+        if media.isNull():
+            self.metadata_label.hide()
+        else:
+            mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
+
+            if getattr(self, "metadata_separator", None) == None:
+                self.metadata_separator = " - "
+
+            self.metadata = mutagen.File(mediaPath)
+            metadata_string = self.metadata["TIT2"].text[0] + self.metadata_separator + self.metadata["TALB"].text[0]
+            self.metadata_label.setText(metadata_string)
+            self.metadata_label.show()
 
     def update_coverart(self, media: QtMultimedia.QMediaContent):
         # If no media is playing, hide the cover art, otherwise separate the url string into a path, set the label pixmap and show
@@ -180,9 +201,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.coverart_label.hide()
         else:
             mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
-            coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
-            if coverart_path:
-                self.coverart_label.setPixmap(QtGui.QPixmap(coverart_path).scaledToWidth(self.coverart_width))
+            coverart_pixmap = lib.get_coverart_pixmap_from_metadata(mutagen.File(mediaPath))
+
+            if coverart_pixmap == None:
+                coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
+                if coverart_path:
+                    coverart_pixmap = QtGui.QPixmap()
+                    coverart_pixmap.load(coverart_path)
+
+            if coverart_pixmap:
+                self.coverart_label.setPixmap(coverart_pixmap.scaledToWidth(self.coverart_width))
                 self.coverart_label.show()
             else:
                 self.coverart_label.hide()
@@ -282,8 +310,8 @@ class MainWindow(QtWidgets.QMainWindow):
         shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
 
-        #if is_admin:
-        #    keyboard.addHotkey("VK_MEDIA_PLAY_PAUSE", self.playpause)
+        if is_admin:
+            keyboard.add_hotkey(0x83, self.playpause)
 
     #
     #   Revise

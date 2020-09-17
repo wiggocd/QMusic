@@ -1,10 +1,11 @@
 #
 #   lib.py
-#   Miscellaneous functions
+#   Miscellaneous definitions
 #
 
 import os
 from typing import Union, List
+from PySide2 import QtGui, QtCore
 
 def get_execpath() -> str:
     return os.path.dirname(os.path.realpath(__file__))
@@ -60,6 +61,11 @@ def urlStringToPath(urlString: str) -> str:
 #
 
 def get_admin_status() -> bool:
+    #   Reminders
+    #   - import ctypes
+    #   - if os.getuid == x ...
+    #   - ctypes.windll.shell32.IsUserAnAdmin != 0 ...
+
     import ctypes
     try:
         is_admin = os.getuid() == 0
@@ -68,7 +74,20 @@ def get_admin_status() -> bool:
 
     return is_admin
 
-def importKeyboard(is_admin: bool) -> any:
-    if is_admin:
-        import keyboard
-        return keyboard
+#
+#   Revise
+#
+
+def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, None]:
+    apic: str = None
+    for k in metadata.keys():
+        if k.startswith("APIC"):
+            apic = k
+    
+    if apic != None:
+        data = metadata[apic].data
+        pixmap = QtGui.QPixmap()
+        pixmap.loadFromData(QtCore.QByteArray(data))
+        return pixmap
+    else:
+        return None
