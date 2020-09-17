@@ -8,8 +8,9 @@ import lib
 import os
 from PlaylistModel import PlaylistModel
 
-keyboard: any
-is_admin = lib.importKeyboard()
+#keyboard: any
+#is_admin = lib.get_admin_status()
+#lib.importKeyboard(is_admin)
 
 class MainWindow(QtWidgets.QMainWindow):
     #   -   init: call init on super, initUI:
@@ -281,8 +282,8 @@ class MainWindow(QtWidgets.QMainWindow):
         shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
 
-        if is_admin:
-            keyboard.addHotkey("VK_MEDIA_PLAY_PAUSE", self.playpause)
+        #if is_admin:
+        #    keyboard.addHotkey("VK_MEDIA_PLAY_PAUSE", self.playpause)
 
     #
     #   Revise

@@ -59,14 +59,16 @@ def urlStringToPath(urlString: str) -> str:
 #   Revise
 #
 
-def importKeyboard() -> bool:
+def get_admin_status() -> bool:
     import ctypes
     try:
         is_admin = os.getuid() == 0
     except AttributeError:
         is_admin = ctypes.windll.shell32.IsUserAnAdmin != 0
 
+    return is_admin
+
+def importKeyboard(is_admin: bool) -> any:
     if is_admin:
         import keyboard
-
-    return is_admin
+        return keyboard
