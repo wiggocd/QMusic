@@ -1,5 +1,5 @@
 
-
+![Test Image 1](/resources/screenshot.png)
 ### QMusic
 
 QMusic is a simple application for audio playback written in Python using the PySide2 Qt5 framework.
