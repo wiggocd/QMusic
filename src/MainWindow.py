@@ -8,6 +8,7 @@ import lib
 import os
 from PlaylistModel import PlaylistModel
 import mutagen
+from typing import List
 
 is_admin = lib.get_admin_status()
 if is_admin:
@@ -101,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.player.positionChanged.connect(self.update_position)
 
     def setPosition(self, position: int):
-        if position > self.player.position():
+        if position != self.player.position():
             self.player.setPosition(position)
 
     def update_duration(self, duration: int):
@@ -289,14 +290,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open file(s)"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
 
-        # For each path, add media QMediaContent from local file to playlist
+        # For each path, add media QMediaContent from local file to playlist if the filetype is supported
         if paths:
             for path in paths:
-                self.playlist.addMedia(
-                    QtMultimedia.QMediaContent(
-                        QtCore.QUrl.fromLocalFile(path)
+                split = path.split(os.path.extsep)
+
+                if lib.supportedFormats.__contains__(split[len(split)-1]):
+                    self.playlist.addMedia(
+                        QtMultimedia.QMediaContent(
+                            QtCore.QUrl.fromLocalFile(path)
+                        )
                     )
-                )
 
         # Emit playlist model layout change and play if paused
         self.playlistModel.layoutChanged.emit()
@@ -342,6 +346,8 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Call event accept proposed action method if event mime data has urls
     #   dropEvent (QDropEvent):
     #       -   Set last media count
+    #       -   If a url is a directory, append paths from os.listdir of supported files to a list
+    #           - Sort the list and add urls from the paths
     #       -   Add media to playlist from urls
     #       -   Emit model layout change
     #       -   Call playNewMedia:
@@ -354,11 +360,32 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def dropEvent(self, event: QtGui.QDropEvent):
         self.lastMediaCount = self.playlist.mediaCount()
-
+        
         for url in event.mimeData().urls():
-            self.playlist.addMedia(
-                QtMultimedia.QMediaContent(url)
-            )
+            path = lib.urlStringToPath(url.toString())
+
+            if os.path.isdir(path):
+                paths: List[str] = []
+
+                for fname in os.listdir(path):
+                    split = fname.split(os.path.extsep)
+
+                    if lib.supportedFormats.__contains__(split[len(split)-1]):
+                        paths.append(path + fname)
+                
+                if paths:
+                    paths.sort()
+                    for path in paths:
+                        self.playlist.addMedia(
+                            QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path))
+                        )
+            else:
+                split = url.toString().split(os.path.extsep)
+
+                if lib.supportedFormats.__contains__(split[len(split)-1]):
+                    self.playlist.addMedia(
+                            QtMultimedia.QMediaContent(url)
+                    )
 
         self.playlistModel.layoutChanged.emit()
         self.playNewMedia()
