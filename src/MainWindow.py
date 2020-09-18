@@ -191,8 +191,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if getattr(self, "metadata_separator", None) == None:
                 self.metadata_separator = " - "
 
-            self.metadata = mutagen.File(mediaPath)
-            metadata_string = self.metadata["TIT2"].text[0] + self.metadata_separator + self.metadata["TALB"].text[0]
+            mutagen_metadata = mutagen.File(mediaPath)
+            self.metadata = lib.Metadata(mutagen_metadata)
+
+            if self.metadata.title and self.metadata.album:
+                metadata_string = self.metadata.title + self.metadata_separator + self.metadata.album
+            else:
+                metadata_string = media.canonicalUrl().fileName()
+
             self.metadata_label.setText(metadata_string)
             self.metadata_label.show()
 

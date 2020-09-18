@@ -6,6 +6,7 @@
 import os
 from typing import Union, List
 from PySide2 import QtGui, QtCore
+import mutagen
 
 def get_execpath() -> str:
     return os.path.dirname(os.path.realpath(__file__))
@@ -91,3 +92,14 @@ def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, No
         return pixmap
     else:
         return None
+
+
+class Metadata:
+    def __init__(self, mutagen_metadata: dict):
+        self.title = None
+        self.album = None
+
+        if "TIT2" in mutagen_metadata:
+            self.title = mutagen_metadata["TIT2"].text[0]
+        if "TALB" in mutagen_metadata:
+            self.album = mutagen_metadata["TALB"].text[0]
