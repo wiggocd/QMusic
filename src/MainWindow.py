@@ -56,8 +56,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create buttons, labels and sliders
         self.control_playpause = QtWidgets.QPushButton()
         self.control_playpause.setFixedWidth(85)
-        self.control_previous = QtWidgets.QPushButton(self.tr("Previous"))
-        self.control_next = QtWidgets.QPushButton(self.tr("Next"))
+        self.control_previous = QtWidgets.QPushButton(self.tr(""))
+        self.control_next = QtWidgets.QPushButton(self.tr(""))
+        self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
+        self.control_previous.setIconSize(QtCore.QSize(12,12))
+        self.control_next.setIcon(QtGui.QIcon("resources/control_next"))
+        self.control_next.setIconSize(QtCore.QSize(12,12))
+        
+        
 
         self.volumeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.volumeSlider.setMaximum(100)
@@ -145,22 +151,36 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
-        self.control_playpause.setText(self.tr("Play"))
+
+        # No Longer needed due to added icon support
+        #self.control_playpause.setText(self.tr("Play"))
+
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(12,12))
         self.control_playpause.pressed.connect(self.play)
+        
 
     def pause(self):
         # Call the pause method of the player and replace play/pause button properties to play; disconnect, set icon and connect to play method
         self.player.pause()
+        
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(12,12))
         self.control_playpause.pressed.disconnect()
-        self.control_playpause.setText("Play")
+
+        # No Longer needed due to added icon support
+        #self.control_playpause.setText("Play")
+        
         self.control_playpause.pressed.connect(self.play)
     
     def play(self):
         # If playlist has media, call the play method of the player and replace play/pause button properties to pause; disconnect, set icon and connect to pause method
         if self.playlist.mediaCount() > 0:
             self.player.play()
+            
+            self.control_playpause.setIcon(QtGui.QIcon("resources/control_pause"))
+            self.control_playpause.setIconSize(QtCore.QSize(12,12))
             self.control_playpause.pressed.disconnect()
-            self.control_playpause.setText(self.tr("Pause"))
             self.control_playpause.pressed.connect(self.pause)
 
     def playpause(self):
