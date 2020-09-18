@@ -3,3 +3,4 @@ main.build
 dist
 *.egg-info
 src/__pycache__
+.vscode
