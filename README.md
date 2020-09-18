@@ -4,18 +4,18 @@ QMusic is a simple application for audio playback written in Python using the Py
 
 *Please note: PySide2 version 5.14 or lower is required as of now due to a bug in QtMultimedia leading to QUrls containing spaces not working in Qt 5.15.*
 
-# Dependencies
+## Dependencies
 
 Python 3.5 or newer, with `python` or `python3` available in your path.
 
 To install the required packages: `python3 setup.py install`
 
-# Running
+## Running
 
 To run the program using the Python interpreter: `python3 setup.py run`
 
 
-# Other Build Commands
+## Other Build Commands
 
 For more info, use `python3 setup.py --help`
 
