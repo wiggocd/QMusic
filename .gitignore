@@ -2,4 +2,4 @@ build
 main.build
 dist
 *.egg-info
-/src/py_cache
+src/__pycache__
