@@ -102,7 +102,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.player.positionChanged.connect(self.update_position)
 
     def setPosition(self, position: int):
-        if position != self.player.position():
+        player_position = self.player.position()
+        if position > player_position + 1 or position < player_position - 1:
             self.player.setPosition(position)
 
     def update_duration(self, duration: int):
