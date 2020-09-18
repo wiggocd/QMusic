@@ -16,7 +16,7 @@ Python 3.5 or newer, with `python` or `python3` available in your path.
 
 # Screenshots
 
-<img src="resources/documentation/screenshot.png" style="border-radius: 4px; margin-bottom: 10px"/>
+<img src="resources/documentation/screenshot.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
 
 # Other Environment Commands
 
