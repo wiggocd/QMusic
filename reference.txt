@@ -16,3 +16,6 @@ https://github.com/andlabs/ui/issues/65
 
 Clickable QLabel:
 https://pastebin.com/Vaxg99P1
+
+QListView Double Click:
+https://stackoverflow.com/questions/4511908/connect-double-click-event-of-qlistview-with-method-in-pyqt4

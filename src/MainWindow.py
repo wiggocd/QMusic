@@ -69,21 +69,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timePositionLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
         self.totalTimeLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
         self.timePositionLabel.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
+            "QLabel {color: #" + lib.textColour + "}"
         )
         self.totalTimeLabel.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
+            "QLabel {color: #" + lib.textColour + "}"
         )
 
         self.metadata_label = QtWidgets.QLabel()
         self.metadata_label.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
+            "QLabel {color: #" + lib.textColour + "}"
         )
         self.metadata_label.hide()
 
@@ -128,9 +122,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create playlist view and set model, create selection model from playlist view and connect playlist selection changed method
         self.playlistView = QtWidgets.QListView()
         self.playlistView.setModel(self.playlistModel)
-        selectionModel = self.playlistView.selectionModel()
-        selectionModel.selectionChanged.connect(self.playlist_selection_changed)
+        # selectionModel = self.playlistView.selectionModel()
+        # selectionModel.selectionChanged.connect(self.playlist_selection_changed)
+
+        # Set view selection mode to abstract item view extended selection and connect double click signal to switch media
         self.playlistView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.playlistView.doubleClicked.connect(self.switchMedia)
 
         # Accept drag and drop
         self.setAcceptDrops(True)
@@ -144,6 +141,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlist.setCurrentIndex(index)
 
     def playlist_selection_changed(self, selection: QtCore.QItemSelection):
+        # Deprecated
+
         # If selection indexes are passed, set index to the first row from the index array
         if len(selection.indexes()) > 0:
             index = selection.indexes()[0].row()
@@ -225,15 +224,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.coverart_label.hide()
 
     def update_media(self, media: QtMultimedia.QMediaContent):
-        # Called on media change, update track metadata and cover art
-        self.update_metadata(media)
-        self.update_coverart(media)
-
         # If playing, update the play/pause button to the playing state, otherwise set its properties to the paused state
         if self.isPlaying():
             self.play()
         else:
             self.pause()
+        
+        # Called on media change, update track metadata and cover art
+        self.update_metadata(media)
+        self.update_coverart(media)
 
     def connect_update_media(self):
         # Connect cover art update method to playlist current media changed signal
@@ -279,17 +278,28 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
         self.mainMenu = self.menuBar()
         fileMenu = self.mainMenu.addMenu("File")
+
         openAction = QtWidgets.QAction("Open", self)
         openAction.triggered.connect(self.open_file)
         openAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
+
+        removeAction = QtWidgets.QAction("Remove", self)
+        removeAction.triggered.connect(self.removeMedia)
+
+        clearPlaylistAction = QtWidgets.QAction("Clear Playlist", self)
+        clearPlaylistAction.triggered.connect(self.playlist.clear)
+        clearPlaylistAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "File|Clear Playlist")))
+
         fileMenu.addAction(openAction)
+        fileMenu.addAction(removeAction)
+        fileMenu.addAction(clearPlaylistAction)
 
     def open_file(self):
         # Set last media count for playlist media check later on
         self.lastMediaCount = self.playlist.mediaCount()
         
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open file(s)"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
 
         # For each path, add media QMediaContent from local file to playlist if the filetype is supported
         if paths:
@@ -319,11 +329,12 @@ class MainWindow(QtWidgets.QMainWindow):
     #   Revise
     #
 
-    def remove_media(self):
+    def removeMedia(self):
         selectedIndexes = self.playlistView.selectedIndexes()
         if len(selectedIndexes) > 0:
-            self.playlist.removeMedia(selectedIndexes[0].row(), selectedIndexes[len(selectedIndexes)-1].row())
-            self.playlistModel.layoutChanged.emit()
+            for index in selectedIndexes:
+                self.playlist.removeMedia(index.row(), selectedIndexes[len(selectedIndexes)-1].row())
+                self.playlistModel.layoutChanged.emit()
 
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
@@ -333,7 +344,13 @@ class MainWindow(QtWidgets.QMainWindow):
         shortcut_playpause.activated.connect(self.playpause)
 
         shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Backspace")), self)
-        shortcut_delete.activated.connect(self.remove_media)
+        shortcut_delete.activated.connect(self.removeMedia)
+
+        shortcut_previous = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaLast), self)
+        shortcut_previous.activated.connect(self.playlist.previous)
+
+        shortcut_next = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaNext), self)
+        shortcut_next.activated.connect(self.playlist.next)
 
         if is_admin:
             keyboard.add_hotkey(0x83, self.playpause)
@@ -394,3 +411,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def playNewMedia(self):
         if self.isPlaying() == False and self.lastMediaCount == 0:
             self.play()
+
+    def switchMedia(self):
+        self.playlist.setCurrentIndex(self.playlistView.selectedIndexes()[0].row())
+        self.playNewMedia()
