@@ -8,6 +8,12 @@ from typing import Union, List
 from PySide2 import QtGui, QtCore
 import mutagen
 
+supportedFormats = [
+    "wav",
+    "mp3",
+    "flac"
+]
+
 def get_execpath() -> str:
     return os.path.dirname(os.path.realpath(__file__))
 
