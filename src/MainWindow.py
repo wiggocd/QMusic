@@ -32,8 +32,8 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.left = 0
         self.top = 0
-        self.width = 430
-        self.height = 320
+        self.width = 660
+        self.height = 400
         self.title = "QMusic"
         
         self.initUI()
@@ -61,12 +61,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_previous = QtWidgets.QPushButton(self.tr(""))
         self.control_next = QtWidgets.QPushButton(self.tr(""))
         self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
-        self.control_previous.setIconSize(QtCore.QSize(12,12))
+        self.control_previous.setIconSize(QtCore.QSize(20,20))
         self.control_next.setIcon(QtGui.QIcon("resources/control_next"))
-        self.control_next.setIconSize(QtCore.QSize(12,12))
+        self.control_next.setIconSize(QtCore.QSize(20,20))
         
-        
-
+        self.basichelp_label = QtWidgets.QLabel("""Welcome to QMusic, to get started go to File --> Open or Drag and Drop a Song or Folder into the window""")
+        self.basichelp_label.hide()
         self.volumeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.volumeSlider.setMaximum(100)
         self.volumeSlider.setValue(100)
@@ -84,7 +84,8 @@ class MainWindow(QtWidgets.QMainWindow):
             QLabel {color: #A7A7A7}
             """
         )
-
+        
+        #self.basichelp_label.hide()
         self.metadata_label = QtWidgets.QLabel()
         self.metadata_label.hide()
 
@@ -159,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.control_playpause.setText(self.tr("Play"))
 
         self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
-        self.control_playpause.setIconSize(QtCore.QSize(12,12))
+        self.control_playpause.setIconSize(QtCore.QSize(20,20))
         self.control_playpause.pressed.connect(self.play)
         
 
@@ -168,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.player.pause()
         
         self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
-        self.control_playpause.setIconSize(QtCore.QSize(12,12))
+        self.control_playpause.setIconSize(QtCore.QSize(20,20))
         self.control_playpause.pressed.disconnect()
 
         # No Longer needed due to added icon support
@@ -182,7 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.player.play()
             
             self.control_playpause.setIcon(QtGui.QIcon("resources/control_pause"))
-            self.control_playpause.setIconSize(QtCore.QSize(12,12))
+            self.control_playpause.setIconSize(QtCore.QSize(20,20))
             self.control_playpause.pressed.disconnect()
             self.control_playpause.pressed.connect(self.pause)
 
@@ -248,12 +249,12 @@ class MainWindow(QtWidgets.QMainWindow):
         hDetailsLayout = QtWidgets.QHBoxLayout()
         hDetailsLayout.addLayout(vDetailsLayout)
         hDetailsLayout.addWidget(self.coverart_label)
-
         detailsGroup.setLayout(hDetailsLayout)
 
         self.vLayout = QtWidgets.QVBoxLayout()
         self.vLayout.addWidget(detailsGroup)
         self.vLayout.addWidget(self.playlistView)
+        self.vLayout.addWidget(self.basichelp_label)
 
     def createCentralWidget(self):
         # Create central widget, call set central widget method and set widget layout
@@ -269,6 +270,11 @@ class MainWindow(QtWidgets.QMainWindow):
         openAction.triggered.connect(self.open_file)
         openAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
         fileMenu.addAction(openAction)
+        helpMenu = self.mainMenu.addMenu("Help")
+        basichelp = QtWidgets.QAction("Basic Help", self)
+        basichelp.triggered.connect(self.basic_help)
+        basichelp.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+H", "Help|Basic Help")))
+        helpMenu.addAction(basichelp)
 
     def open_file(self):
         # Set last media count for playlist media check later on
@@ -288,6 +294,9 @@ class MainWindow(QtWidgets.QMainWindow):
                             QtCore.QUrl.fromLocalFile(path)
                         )
                     )
+    def basic_help(self):
+        self.basichelp_label.show()
+
 
         # Emit playlist model layout change and play if paused
         self.playlistModel.layoutChanged.emit()
