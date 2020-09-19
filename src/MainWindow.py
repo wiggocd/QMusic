@@ -10,9 +10,9 @@ from PlaylistModel import PlaylistModel
 import mutagen
 from typing import List
 
-is_admin = lib.get_admin_status()
-if is_admin:
-    import keyboard
+#keyboard: any
+#is_admin = lib.get_admin_status()
+#lib.importKeyboard(is_admin)
 
 class MainWindow(QtWidgets.QMainWindow):
     #   -   init: call init on super, initUI:
@@ -58,8 +58,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create buttons, labels and sliders
         self.control_playpause = QtWidgets.QPushButton()
         self.control_playpause.setFixedWidth(85)
-        self.control_previous = QtWidgets.QPushButton(self.tr("Previous"))
-        self.control_next = QtWidgets.QPushButton(self.tr("Next"))
+        self.control_previous = QtWidgets.QPushButton(self.tr(""))
+        self.control_next = QtWidgets.QPushButton(self.tr(""))
+        self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
+        self.control_previous.setIconSize(QtCore.QSize(12,12))
+        self.control_next.setIcon(QtGui.QIcon("resources/control_next"))
+        self.control_next.setIconSize(QtCore.QSize(12,12))
+        
+        
 
         self.volumeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.volumeSlider.setMaximum(100)
@@ -80,11 +86,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.metadata_label = QtWidgets.QLabel()
-        self.metadata_label.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
-        )
         self.metadata_label.hide()
 
         self.coverart_label = QtWidgets.QLabel()
@@ -130,7 +131,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlistView.setModel(self.playlistModel)
         selectionModel = self.playlistView.selectionModel()
         selectionModel.selectionChanged.connect(self.playlist_selection_changed)
-        self.playlistView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         # Accept drag and drop
         self.setAcceptDrops(True)
@@ -154,22 +154,36 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
-        self.control_playpause.setText(self.tr("Play"))
+
+        # No Longer needed due to added icon support
+        #self.control_playpause.setText(self.tr("Play"))
+
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(12,12))
         self.control_playpause.pressed.connect(self.play)
+        
 
     def pause(self):
         # Call the pause method of the player and replace play/pause button properties to play; disconnect, set icon and connect to play method
         self.player.pause()
+        
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(12,12))
         self.control_playpause.pressed.disconnect()
-        self.control_playpause.setText("Play")
+
+        # No Longer needed due to added icon support
+        #self.control_playpause.setText("Play")
+        
         self.control_playpause.pressed.connect(self.play)
     
     def play(self):
         # If playlist has media, call the play method of the player and replace play/pause button properties to pause; disconnect, set icon and connect to pause method
         if self.playlist.mediaCount() > 0:
             self.player.play()
+            
+            self.control_playpause.setIcon(QtGui.QIcon("resources/control_pause"))
+            self.control_playpause.setIconSize(QtCore.QSize(12,12))
             self.control_playpause.pressed.disconnect()
-            self.control_playpause.setText(self.tr("Pause"))
             self.control_playpause.pressed.connect(self.pause)
 
     def playpause(self):
@@ -179,30 +193,9 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.play()
 
-    #
-    #   Revise
-    #
-
     def update_metadata(self, media: QtMultimedia.QMediaContent):
         # Todo: if no media is playing, hide the metadata, otherwise set the metadata from the metadata class and set the label text
-        if media.isNull():
-            self.metadata_label.hide()
-        else:
-            mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
-
-            if getattr(self, "metadata_separator", None) == None:
-                self.metadata_separator = " - "
-
-            mutagen_metadata = mutagen.File(mediaPath)
-            self.metadata = lib.Metadata(mutagen_metadata)
-
-            if self.metadata.title and self.metadata.album:
-                metadata_string = self.metadata.title + self.metadata_separator + self.metadata.album
-            else:
-                metadata_string = media.canonicalUrl().fileName()
-
-            self.metadata_label.setText(metadata_string)
-            self.metadata_label.show()
+        self
 
     def update_coverart(self, media: QtMultimedia.QMediaContent):
         # If no media is playing, hide the cover art, otherwise separate the url string into a path, set the label pixmap and show
@@ -210,16 +203,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.coverart_label.hide()
         else:
             mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
-            coverart_pixmap = lib.get_coverart_pixmap_from_metadata(mutagen.File(mediaPath))
-
-            if coverart_pixmap == None:
-                coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
-                if coverart_path:
-                    coverart_pixmap = QtGui.QPixmap()
-                    coverart_pixmap.load(coverart_path)
-
-            if coverart_pixmap:
-                self.coverart_label.setPixmap(coverart_pixmap.scaledToWidth(self.coverart_width))
+            coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
+            if coverart_path:
+                self.coverart_label.setPixmap(QtGui.QPixmap(coverart_path).scaledToWidth(self.coverart_width))
                 self.coverart_label.show()
             else:
                 self.coverart_label.hide()
@@ -315,28 +301,15 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             return False
 
-    #
-    #   Revise
-    #
-
-    def remove_media(self):
-        selectedIndexes = self.playlistView.selectedIndexes()
-        if len(selectedIndexes) > 0:
-            self.playlist.removeMedia(selectedIndexes[0].row(), selectedIndexes[len(selectedIndexes)-1].row())
-            self.playlistModel.layoutChanged.emit()
-
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
-        shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space")), self)
+        shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space", "")), self)
         shortcut_playpause = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaPlay), self)
         shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
 
-        shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Backspace")), self)
-        shortcut_delete.activated.connect(self.remove_media)
-
-        if is_admin:
-            keyboard.add_hotkey(0x83, self.playpause)
+        #if is_admin:
+        #    keyboard.addHotkey("VK_MEDIA_PLAY_PAUSE", self.playpause)
 
     #
     #   Revise

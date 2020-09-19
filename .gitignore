@@ -4,3 +4,4 @@ dist
 *.egg-info
 src/__pycache__
 .vscode
+.DS_Store
