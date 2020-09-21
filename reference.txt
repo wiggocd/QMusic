@@ -1,4 +1,4 @@
-PyQt5 Starting Points:
+PyQt5 starting points:
 https://pythonspot.com/gui/
 
 setup.py:
@@ -8,11 +8,20 @@ https://github.com/navdeep-G/setup.py
 Multimedia:
 https://www.learnpyqt.com/examples/failamp-multimedia-player/
 
-Qt5 Broken URLs with Spaces:
+Qt5 broken URLs with spaces:
 https://bugreports.qt.io/browse/QTBUG-84585
 
-Mac High DPI Support:
+Mac high DPI support:
 https://github.com/andlabs/ui/issues/65
 
 Clickable QLabel:
 https://pastebin.com/Vaxg99P1
+
+QListView double click:
+https://stackoverflow.com/questions/4511908/connect-double-click-event-of-qlistview-with-method-in-pyqt4
+
+Drag and drop custom implementation:
+https://stackoverflow.com/a/46161760
+
+Reordering items in a QListView:
+https://www.qtcentre.org/threads/23258-How-to-reorder-items-in-QListView

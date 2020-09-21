@@ -6,7 +6,7 @@
 from PySide2 import QtWidgets, QtCore, QtGui, QtMultimedia
 import lib
 import os
-from PlaylistModel import PlaylistModel
+from playlist import PlaylistModel, PlaylistView
 import mutagen
 from typing import List
 
@@ -83,23 +83,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timePositionLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
         self.totalTimeLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
         self.timePositionLabel.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
+            "QLabel {color: #" + lib.textColour + "}"
         )
         self.totalTimeLabel.setStyleSheet(
-            """
-            QLabel {color: #A7A7A7}
-            """
+            "QLabel {color: #" + lib.textColour + "}"
         )
         
         #self.basichelp_label.hide()
         self.metadata_label = QtWidgets.QLabel()
+        self.metadata_label.setStyleSheet(
+            "QLabel {color: #" + lib.textColour + "}"
+        )
         self.metadata_label.hide()
         if showart == 1:
             self.coverart_label = QtWidgets.QLabel()
             self.coverart_label.hide()
             self.coverart_width = width
+
+        # Create playlist action buttons and connect pressed signals
+        self.control_playlist_moveDown = QtWidgets.QPushButton(self.tr("Move Down"))
+        self.control_playlist_moveUp = QtWidgets.QPushButton(self.tr("Move Up"))
+        self.control_playlist_clear = QtWidgets.QPushButton(self.tr("Clear"))
+
+        self.control_playlist_moveDown.pressed.connect(self.playlist_moveDown)
+        self.control_playlist_moveUp.pressed.connect(self.playlist_moveUp)
+        self.control_playlist_clear.pressed.connect(self.playlist_clear)
 
     def initPlayer(self):
         # Create QMediaPlayer and connect to time and volume sliders value changed members, connect player position/duration changed to update position and duration methods
@@ -132,18 +140,84 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlist = QtMultimedia.QMediaPlaylist()
         self.player.setPlaylist(self.playlist)
         self.playlistModel = PlaylistModel(self.playlist)
-        self.control_previous.pressed.connect(self.playlist.previous)
-        self.control_next.pressed.connect(self.playlist.next)
+        self.control_previous.pressed.connect(self.previousTrack)
+        self.control_next.pressed.connect(self.nextTrack)
 
         # Create playlist view and set model, create selection model from playlist view and connect playlist selection changed method
-        self.playlistView = QtWidgets.QListView()
-        self.playlistView.setModel(self.playlistModel)
-        selectionModel = self.playlistView.selectionModel()
-        selectionModel.selectionChanged.connect(self.playlist_selection_changed)
+        self.playlistView = PlaylistView(self.playlistModel)
+        self.playlistViewSelectionModel = self.playlistView.selectionModel()
+        # self.playlistViewSelectionModel.selectionChanged.connect(self.playlist_selection_changed)
+
+        # Set view selection mode to abstract item view extended selection and connect double click signal to switch media
+        self.playlistView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.playlistView.doubleClicked.connect(self.switchMedia)
 
         # Accept drag and drop
         self.setAcceptDrops(True)
 
+    def previousTrack(self):
+        self.playlist.previous()
+        self.play()
+
+    def nextTrack(self):
+        self.playlist.next()
+        self.play()
+
+    def updatePlayingState(self):
+        if self.isPlaying():
+            self.play()
+        else:
+            self.pause()
+
+    #
+    #   Todo: add comments for playlist move functions
+    #
+
+    def playlist_moveDown(self):
+        selectedIndexes = self.playlistView.selectedIndexes()
+        
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False:
+            firstIndex = selectedIndexes[0].row()
+            maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
+
+            media: List[QtMultimedia.QMediaContent] = []
+            for i in range(firstIndex, maxIndex + 1):
+                media.append(self.playlist.media(i))
+            
+            previousSelectedIndexes = self.playlistView.selectedIndexes()
+
+            self.playlist.insertMedia(firstIndex + 2, media)
+            self.playlist.removeMedia(firstIndex, maxIndex)
+            self.playlistModel.layoutChanged.emit()
+
+            len_previousSelectedIndexes = len(previousSelectedIndexes)
+            self.playlistViewSelectionModel.select(QtCore.QItemSelection(previousSelectedIndexes[0], previousSelectedIndexes[len_previousSelectedIndexes - 1]), QtCore.QItemSelectionModel.Deselect)
+            self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() + 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() + 1)), QtCore.QItemSelectionModel.Select)
+
+    def playlist_moveUp(self):
+        selectedIndexes = self.playlistView.selectedIndexes()
+        
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False and selectedIndexes[0].row() - 1 != self.playlist.currentIndex():
+            firstIndex = selectedIndexes[0].row()
+            maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
+
+            media: List[QtMultimedia.QMediaContent] = []
+            for i in range(firstIndex, maxIndex + 1):
+                media.append(self.playlist.media(i))
+            
+            previousSelectedIndexes = self.playlistView.selectedIndexes()
+
+            self.playlist.insertMedia(firstIndex - 1, media)
+            self.playlist.removeMedia(firstIndex + 1, maxIndex + 1)
+            self.playlistModel.layoutChanged.emit()
+
+            len_previousSelectedIndexes = len(previousSelectedIndexes)
+            self.playlistViewSelectionModel.select(QtCore.QItemSelection(previousSelectedIndexes[0], previousSelectedIndexes[len_previousSelectedIndexes - 1]), QtCore.QItemSelectionModel.Deselect)
+            self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() - 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() - 1)), QtCore.QItemSelectionModel.Select)
+
+    def playlist_clear(self):
+        self.playlist.clear()
+    
     #
     #   Revise
     #
@@ -153,6 +227,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlist.setCurrentIndex(index)
 
     def playlist_selection_changed(self, selection: QtCore.QItemSelection):
+        #
+        #   Deprecated
+        #
+
         # If selection indexes are passed, set index to the first row from the index array
         if len(selection.indexes()) > 0:
             index = selection.indexes()[0].row()
@@ -249,15 +327,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.coverart_label.hide()
 
     def update_media(self, media: QtMultimedia.QMediaContent):
+        # If playing, update the play/pause button to the playing state, otherwise set its properties to the paused state
+        self.updatePlayingState()
+        
         # Called on media change, update track metadata and cover art
         self.update_metadata(media)
         self.update_coverart(media)
-
-        # If playing, update the play/pause button to the playing state, otherwise set its properties to the paused state
-        if self.isPlaying():
-            self.play()
-        else:
-            self.pause()
 
     def connect_update_media(self):
         # Connect cover art update method to playlist current media changed signal
@@ -266,7 +341,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def createLayoutMain(self):
         # Create main vertical layout, add horizontal layouts with added sub-widgets to vertical layout
         detailsGroup = QtWidgets.QGroupBox()
-        
         hControlLayout = QtWidgets.QHBoxLayout()
         hControlLayout.addWidget(self.control_previous)
         hControlLayout.addWidget(self.control_playpause)
@@ -298,8 +372,16 @@ class MainWindow(QtWidgets.QMainWindow):
         hDetailsLayout.addWidget(self.coverart_label)
         detailsGroup.setLayout(hDetailsLayout)
 
+        
+        actionsLayout = QtWidgets.QHBoxLayout()
+        actionsLayout.addWidget(self.control_playlist_moveDown)
+        actionsLayout.addWidget(self.control_playlist_moveUp)
+        actionsLayout.addWidget(self.control_playlist_clear)
+        self.vLayout.addLayout(actionsLayout)
+
         self.vLayout = QtWidgets.QVBoxLayout()
         self.vLayout.addWidget(detailsGroup)
+        self.vLayout.addWidget(self.playlistView)
         self.vLayout.addWidget(self.basichelp_label)
 
     def createLayoutMini(self):
@@ -350,22 +432,33 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
         self.mainMenu = self.menuBar()
         fileMenu = self.mainMenu.addMenu("File")
+
         openAction = QtWidgets.QAction("Open", self)
         openAction.triggered.connect(self.open_file)
         openAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
+
+        removeAction = QtWidgets.QAction("Remove", self)
+        removeAction.triggered.connect(self.removeMedia)
+
+        clearPlaylistAction = QtWidgets.QAction("Clear Playlist", self)
+        clearPlaylistAction.triggered.connect(self.playlist_clear)
+        clearPlaylistAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "File|Clear Playlist")))
+
         fileMenu.addAction(openAction)
         helpMenu = self.mainMenu.addMenu("Help")
         basichelp = QtWidgets.QAction("Basic Help", self)
         basichelp.triggered.connect(self.basic_help)
         basichelp.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+H", "Help|Basic Help")))
         helpMenu.addAction(basichelp)
+        fileMenu.addAction(removeAction)
+        fileMenu.addAction(clearPlaylistAction)
 
     def open_file(self):
         # Set last media count for playlist media check later on
         self.lastMediaCount = self.playlist.mediaCount()
         
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open file(s)"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
 
         # For each path, add media QMediaContent from local file to playlist if the filetype is supported
         if paths:
@@ -394,6 +487,17 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             return False
 
+    #
+    #   Revise
+    #
+
+    def removeMedia(self):
+        selectedIndexes = self.playlistView.selectedIndexes()
+        if len(selectedIndexes) > 0:
+            for index in selectedIndexes:
+                self.playlist.removeMedia(index.row(), selectedIndexes[len(selectedIndexes)-1].row())
+                self.playlistModel.layoutChanged.emit()
+
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
         shortcut_playpause_space = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Space", "")), self)
@@ -401,8 +505,17 @@ class MainWindow(QtWidgets.QMainWindow):
         shortcut_playpause_space.activated.connect(self.playpause)
         shortcut_playpause.activated.connect(self.playpause)
 
+        shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Backspace")), self)
+        shortcut_delete.activated.connect(self.removeMedia)
+
+        shortcut_previous = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaLast), self)
+        shortcut_previous.activated.connect(self.playlist.previous)
+
+        shortcut_next = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaNext), self)
+        shortcut_next.activated.connect(self.playlist.next)
+
         #if is_admin:
-        #    keyboard.addHotkey("VK_MEDIA_PLAY_PAUSE", self.playpause)
+            #keyboard.add_hotkey(0x83, self.playpause)
 
     #
     #   Revise
@@ -460,3 +573,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def playNewMedia(self):
         if self.isPlaying() == False and self.lastMediaCount == 0:
             self.play()
+
+    def switchMedia(self):
+        selectedIndexes = self.playlistView.selectedIndexes()
+        if len(selectedIndexes) > 0:
+            self.playlist.setCurrentIndex(selectedIndexes[0].row())
+            self.playNewMedia()

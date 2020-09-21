@@ -14,6 +14,8 @@ supportedFormats = [
     "flac"
 ]
 
+textColour = "A7A7A7"
+
 def get_execpath() -> str:
     return os.path.dirname(os.path.realpath(__file__))
 
