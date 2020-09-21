@@ -60,8 +60,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playpause.setFixedWidth(85)
         self.control_previous = QtWidgets.QPushButton(self.tr(""))
         self.control_next = QtWidgets.QPushButton(self.tr(""))
+
         self.mini_player_button = QtWidgets.QPushButton("Mini Player")
         self.mini_player_button.clicked.connect(self.mini_button_clicked)
+
+        self.main_player_button = QtWidgets.QPushButton("Main Player")
+        self.main_player_button.clicked.connect(self.main_button_clicked)
+
         self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
         self.control_previous.setIconSize(QtCore.QSize(20,20))
         self.control_next.setIcon(QtGui.QIcon("resources/control_next"))
@@ -162,8 +167,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.width = 200
         self.height = 200
         self.title = "QMusic Miniplayer"
-        self.setGeometry(180, 180, 180, 180)
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
         self.createLayoutMini()
+        self.createCentralWidget()
+
+    def main_button_clicked(self):
+        self.left = 0
+        self.top = 0
+        self.width = 660
+        self.height = 400
+        self.title = "QMusic"
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        self.createLayoutMini()
+        self.createCentralWidget()
+
+        self.createLayoutMain()
         self.createCentralWidget()
         
         
@@ -252,16 +272,25 @@ class MainWindow(QtWidgets.QMainWindow):
         hControlLayout.addWidget(self.control_playpause)
         hControlLayout.addWidget(self.control_next)
         hControlLayout.addWidget(self.volumeSlider)
-        hControlLayout.addWidget(self.mini_player_button)
+        
 
         hTimeLayout = QtWidgets.QHBoxLayout()
         hTimeLayout.addWidget(self.timePositionLabel)
         hTimeLayout.addWidget(self.timeSlider)
         hTimeLayout.addWidget(self.totalTimeLabel)
 
+        hPlaylistLayout = QtWidgets.QHBoxLayout()
+        hPlaylistLayout.addWidget(self.playlistView)
+
+        hButtonsLayout = QtWidgets.QHBoxLayout()
+        hButtonsLayout.addWidget(self.mini_player_button)
+        hButtonsLayout.addWidget(self.main_player_button)
+
         vDetailsLayout = QtWidgets.QVBoxLayout()
         vDetailsLayout.addLayout(hControlLayout)
         vDetailsLayout.addLayout(hTimeLayout)
+        vDetailsLayout.addLayout(hPlaylistLayout)
+        vDetailsLayout.addLayout(hButtonsLayout)
         vDetailsLayout.addWidget(self.metadata_label)
 
         hDetailsLayout = QtWidgets.QHBoxLayout()
@@ -271,7 +300,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.vLayout = QtWidgets.QVBoxLayout()
         self.vLayout.addWidget(detailsGroup)
-        self.vLayout.addWidget(self.playlistView)
         self.vLayout.addWidget(self.basichelp_label)
 
     def createLayoutMini(self):
@@ -294,11 +322,16 @@ class MainWindow(QtWidgets.QMainWindow):
         hPlaylistLayout = QtWidgets.QHBoxLayout()
         hPlaylistLayout.addWidget(self.playlistView)
 
+        hButtonsLayout = QtWidgets.QHBoxLayout()
+        hButtonsLayout.addWidget(self.mini_player_button)
+        hButtonsLayout.addWidget(self.main_player_button)
+
         vDetailsLayout = QtWidgets.QVBoxLayout()
         vDetailsLayout.addLayout(hControlLayout)
         vDetailsLayout.addLayout(hTimeLayout)
         vDetailsLayout.addLayout(hVolumeLayout)
         vDetailsLayout.addLayout(hPlaylistLayout)
+        vDetailsLayout.addLayout(hButtonsLayout)
         vDetailsLayout.addWidget(self.metadata_label)
 
         
