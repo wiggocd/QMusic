@@ -164,7 +164,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def mini_button_clicked(self):
         self.left = 0
         self.top = 0
-        self.width = 200
+        self.width = 100
         self.height = 200
         self.title = "QMusic Miniplayer"
         self.setWindowTitle(self.title)
