@@ -42,24 +42,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
 
-        self.createWidgets()
+        self.createWidgets(64,1)
         self.initPlayer()
         self.initPlaylist()
         self.init_playpause()
         self.connect_update_media()
-        self.createLayout()
+        self.createLayoutMain()
         self.createCentralWidget()
         self.createMenus()
         self.createShortcuts()
 
         self.show()
 
-    def createWidgets(self):
+    def createWidgets(self,width,showart):
         # Create buttons, labels and sliders
         self.control_playpause = QtWidgets.QPushButton()
         self.control_playpause.setFixedWidth(85)
         self.control_previous = QtWidgets.QPushButton(self.tr(""))
         self.control_next = QtWidgets.QPushButton(self.tr(""))
+        self.mini_player_button = QtWidgets.QPushButton("Mini Player")
+        self.mini_player_button.clicked.connect(self.mini_button_clicked)
         self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
         self.control_previous.setIconSize(QtCore.QSize(20,20))
         self.control_next.setIcon(QtGui.QIcon("resources/control_next"))
@@ -67,6 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.basichelp_label = QtWidgets.QLabel("""Welcome to QMusic, to get started go to File --> Open or Drag and Drop a Song or Folder into the window""")
         self.basichelp_label.hide()
+        self.basichelp_label.setWordWrap(True)
         self.volumeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.volumeSlider.setMaximum(100)
         self.volumeSlider.setValue(100)
@@ -88,10 +91,10 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.basichelp_label.hide()
         self.metadata_label = QtWidgets.QLabel()
         self.metadata_label.hide()
-
-        self.coverart_label = QtWidgets.QLabel()
-        self.coverart_label.hide()
-        self.coverart_width = 64
+        if showart == 1:
+            self.coverart_label = QtWidgets.QLabel()
+            self.coverart_label.hide()
+            self.coverart_width = width
 
     def initPlayer(self):
         # Create QMediaPlayer and connect to time and volume sliders value changed members, connect player position/duration changed to update position and duration methods
@@ -152,6 +155,20 @@ class MainWindow(QtWidgets.QMainWindow):
             # If index is not negative, (deselection), set playlist view current index to model index from local index
             if index > -1:
                 self.playlistView.setCurrentIndex(self.playlistModel.index(index))
+
+    def mini_button_clicked(self):
+        self.left = 0
+        self.top = 0
+        self.width = 200
+        self.height = 200
+        self.title = "QMusic Miniplayer"
+        self.setGeometry(180, 180, 180, 180)
+        self.createLayoutMini()
+        self.createCentralWidget()
+        
+        
+
+        
 
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
@@ -226,7 +243,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Connect cover art update method to playlist current media changed signal
         self.playlist.currentMediaChanged.connect(self.update_media)
 
-    def createLayout(self):
+    def createLayoutMain(self):
         # Create main vertical layout, add horizontal layouts with added sub-widgets to vertical layout
         detailsGroup = QtWidgets.QGroupBox()
         
@@ -235,6 +252,7 @@ class MainWindow(QtWidgets.QMainWindow):
         hControlLayout.addWidget(self.control_playpause)
         hControlLayout.addWidget(self.control_next)
         hControlLayout.addWidget(self.volumeSlider)
+        hControlLayout.addWidget(self.mini_player_button)
 
         hTimeLayout = QtWidgets.QHBoxLayout()
         hTimeLayout.addWidget(self.timePositionLabel)
@@ -256,6 +274,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vLayout.addWidget(self.playlistView)
         self.vLayout.addWidget(self.basichelp_label)
 
+    def createLayoutMini(self):
+        detailsGroup = QtWidgets.QGroupBox()
+
+        hControlLayout = QtWidgets.QHBoxLayout()
+        hControlLayout.addWidget(self.control_previous)
+        hControlLayout.addWidget(self.control_playpause)
+        hControlLayout.addWidget(self.control_next)
+
+        hVolumeLayout = QtWidgets.QHBoxLayout()
+        hVolumeLayout.addWidget(self.volumeSlider)
+        hVolumeLayout.addWidget(self.coverart_label)
+
+        hTimeLayout = QtWidgets.QHBoxLayout()
+        hTimeLayout.addWidget(self.timePositionLabel)
+        hTimeLayout.addWidget(self.timeSlider)
+        hTimeLayout.addWidget(self.totalTimeLabel)
+
+        hPlaylistLayout = QtWidgets.QHBoxLayout()
+        hPlaylistLayout.addWidget(self.playlistView)
+
+        vDetailsLayout = QtWidgets.QVBoxLayout()
+        vDetailsLayout.addLayout(hControlLayout)
+        vDetailsLayout.addLayout(hTimeLayout)
+        vDetailsLayout.addLayout(hVolumeLayout)
+        vDetailsLayout.addLayout(hPlaylistLayout)
+        vDetailsLayout.addWidget(self.metadata_label)
+
+        
+        detailsGroup.setLayout(vDetailsLayout)
+
+        self.vLayout = QtWidgets.QVBoxLayout()
+        self.vLayout.addWidget(detailsGroup)
+        self.vLayout.addWidget(self.basichelp_label)
     def createCentralWidget(self):
         # Create central widget, call set central widget method and set widget layout
         self.centralWidget = QtWidgets.QWidget()
