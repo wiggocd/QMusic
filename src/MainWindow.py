@@ -242,13 +242,20 @@ class MainWindow(QtWidgets.QMainWindow):
     def mini_button_clicked(self):
         self.left = 0
         self.top = 0
-        self.width = 100
+        self.width = 200
         self.height = 200
         self.title = "QMusic Miniplayer"
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+        self.createLayoutMain()
+        self.createCentralWidget()
         self.createLayoutMini()
         self.createCentralWidget()
+        self.control_playlist_moveDown.hide()
+        self.control_playlist_moveUp.hide()
+        self.control_playlist_clear.hide()
+        self.coverart_label.rect().center()
+
 
     def main_button_clicked(self):
         self.left = 0
@@ -258,11 +265,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.title = "QMusic"
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
-        self.createLayoutMini()
-        self.createCentralWidget()
-
         self.createLayoutMain()
         self.createCentralWidget()
+        
         
         
 
@@ -311,7 +316,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_metadata(self, media: QtMultimedia.QMediaContent):
         # Todo: if no media is playing, hide the metadata, otherwise set the metadata from the metadata class and set the label text
-        self
+        if media.isNull():
+            self.metadata_label.hide()
+        else:
+            mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
+
+            if getattr(self, "metadata_separator", None) == None:
+                self.metadata_separator = " - "
+
+            mutagen_metadata = mutagen.File(mediaPath)
+            self.metadata = lib.Metadata(mutagen_metadata)
+
+            if self.metadata.title and self.metadata.album:
+                metadata_string = self.metadata.title + self.metadata_separator + self.metadata.album
+            else:
+                metadata_string = media.canonicalUrl().fileName()
+
+            self.metadata_label.setText(metadata_string)
+            self.metadata_label.show()
 
     def update_coverart(self, media: QtMultimedia.QMediaContent):
         # If no media is playing, hide the cover art, otherwise separate the url string into a path, set the label pixmap and show
@@ -319,9 +341,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.coverart_label.hide()
         else:
             mediaPath = lib.urlStringToPath(media.canonicalUrl().toString())
-            coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
-            if coverart_path:
-                self.coverart_label.setPixmap(QtGui.QPixmap(coverart_path).scaledToWidth(self.coverart_width))
+            coverart_pixmap = lib.get_coverart_pixmap_from_metadata(mutagen.File(mediaPath))
+
+            if coverart_pixmap == None:
+                coverart_path = lib.get_coverart(os.path.dirname(mediaPath))
+                if coverart_path:
+                    coverart_pixmap = QtGui.QPixmap()
+                    coverart_pixmap.load(coverart_path)
+
+            if coverart_pixmap:
+                self.coverart_label.setPixmap(coverart_pixmap.scaledToWidth(self.coverart_width))
                 self.coverart_label.show()
             else:
                 self.coverart_label.hide()
@@ -353,23 +382,15 @@ class MainWindow(QtWidgets.QMainWindow):
         hTimeLayout.addWidget(self.timeSlider)
         hTimeLayout.addWidget(self.totalTimeLabel)
 
-        hPlaylistLayout = QtWidgets.QHBoxLayout()
-        hPlaylistLayout.addWidget(self.playlistView)
-
-        hButtonsLayout = QtWidgets.QHBoxLayout()
-        hButtonsLayout.addWidget(self.mini_player_button)
-        hButtonsLayout.addWidget(self.main_player_button)
-
         vDetailsLayout = QtWidgets.QVBoxLayout()
         vDetailsLayout.addLayout(hControlLayout)
         vDetailsLayout.addLayout(hTimeLayout)
-        vDetailsLayout.addLayout(hPlaylistLayout)
-        vDetailsLayout.addLayout(hButtonsLayout)
         vDetailsLayout.addWidget(self.metadata_label)
-
+        
         hDetailsLayout = QtWidgets.QHBoxLayout()
         hDetailsLayout.addLayout(vDetailsLayout)
         hDetailsLayout.addWidget(self.coverart_label)
+        
         detailsGroup.setLayout(hDetailsLayout)
 
         
@@ -377,10 +398,13 @@ class MainWindow(QtWidgets.QMainWindow):
         actionsLayout.addWidget(self.control_playlist_moveDown)
         actionsLayout.addWidget(self.control_playlist_moveUp)
         actionsLayout.addWidget(self.control_playlist_clear)
-        self.vLayout.addLayout(actionsLayout)
+        actionsLayout.addWidget(self.mini_player_button)
+        actionsLayout.addWidget(self.main_player_button)
+        
 
         self.vLayout = QtWidgets.QVBoxLayout()
         self.vLayout.addWidget(detailsGroup)
+        self.vLayout.addLayout(actionsLayout)
         self.vLayout.addWidget(self.playlistView)
         self.vLayout.addWidget(self.basichelp_label)
 
@@ -394,7 +418,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         hVolumeLayout = QtWidgets.QHBoxLayout()
         hVolumeLayout.addWidget(self.volumeSlider)
-        hVolumeLayout.addWidget(self.coverart_label)
 
         hTimeLayout = QtWidgets.QHBoxLayout()
         hTimeLayout.addWidget(self.timePositionLabel)
@@ -403,18 +426,30 @@ class MainWindow(QtWidgets.QMainWindow):
 
         hPlaylistLayout = QtWidgets.QHBoxLayout()
         hPlaylistLayout.addWidget(self.playlistView)
+        hPlaylistLayout.addWidget(self.coverart_label)
+    
+        actionsLayout = QtWidgets.QHBoxLayout()
+        
+        actionsLayout.addWidget(self.control_playlist_moveDown)
+        actionsLayout.addWidget(self.control_playlist_moveUp)
+        actionsLayout.addWidget(self.control_playlist_clear)
 
-        hButtonsLayout = QtWidgets.QHBoxLayout()
-        hButtonsLayout.addWidget(self.mini_player_button)
-        hButtonsLayout.addWidget(self.main_player_button)
+        switchLayoutButtons = QtWidgets.QHBoxLayout()
+        switchLayoutButtons.addWidget(self.main_player_button)
+        
+        switchLayoutButtons.addWidget(self.mini_player_button)
 
         vDetailsLayout = QtWidgets.QVBoxLayout()
+        
         vDetailsLayout.addLayout(hControlLayout)
-        vDetailsLayout.addLayout(hTimeLayout)
         vDetailsLayout.addLayout(hVolumeLayout)
-        vDetailsLayout.addLayout(hPlaylistLayout)
-        vDetailsLayout.addLayout(hButtonsLayout)
+        vDetailsLayout.addLayout(hTimeLayout)
+        vDetailsLayout.addLayout(actionsLayout)
         vDetailsLayout.addWidget(self.metadata_label)
+        vDetailsLayout.addLayout(hPlaylistLayout)
+
+        vDetailsLayout.addLayout(switchLayoutButtons)
+        
 
         
         detailsGroup.setLayout(vDetailsLayout)
@@ -458,7 +493,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lastMediaCount = self.playlist.mediaCount()
         
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3);;m4a Audio (*.m4a)"))
 
         # For each path, add media QMediaContent from local file to playlist if the filetype is supported
         if paths:
