@@ -35,7 +35,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.width = 660
         self.height = 400
         self.title = "QMusic"
-        
         self.initUI()
 
     def initUI(self):
@@ -94,6 +93,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.metadata_label.setStyleSheet(
             "QLabel {color: #" + lib.textColour + "}"
         )
+        self.metadata_label.setWordWrap(True)
         self.metadata_label.hide()
         if showart == 1:
             self.coverart_label = QtWidgets.QLabel()
@@ -254,7 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveDown.hide()
         self.control_playlist_moveUp.hide()
         self.control_playlist_clear.hide()
-        self.coverart_label.rect().center()
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
 
     def main_button_clicked(self):
@@ -266,13 +266,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
         self.createLayoutMain()
+        self.control_playlist_moveDown.show()
+        self.control_playlist_moveUp.show()
+        self.control_playlist_clear.show()
         self.createCentralWidget()
         
-        
-        
-
-        
-
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
 
@@ -479,12 +477,21 @@ class MainWindow(QtWidgets.QMainWindow):
         clearPlaylistAction.triggered.connect(self.playlist_clear)
         clearPlaylistAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "File|Clear Playlist")))
 
-        fileMenu.addAction(openAction)
         helpMenu = self.mainMenu.addMenu("Help")
         basichelp = QtWidgets.QAction("Basic Help", self)
         basichelp.triggered.connect(self.basic_help)
         basichelp.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+H", "Help|Basic Help")))
+
+        windowMenu = self.mainMenu.addMenu("Window")
+        miniwindow = QtWidgets.QAction("Mini Player", self)
+        miniwindow.triggered.connect(self.mini_button_clicked)
+        mainwindow = QtWidgets.QAction("Main Player", self)
+        mainwindow.triggered.connect(self.main_button_clicked)
+
+        windowMenu.addAction(miniwindow)
+        windowMenu.addAction(mainwindow)
         helpMenu.addAction(basichelp)
+        fileMenu.addAction(openAction)
         fileMenu.addAction(removeAction)
         fileMenu.addAction(clearPlaylistAction)
 
@@ -543,10 +550,10 @@ class MainWindow(QtWidgets.QMainWindow):
         shortcut_delete = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Backspace")), self)
         shortcut_delete.activated.connect(self.removeMedia)
 
-        shortcut_previous = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaLast), self)
+        shortcut_previous = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Left), self)
         shortcut_previous.activated.connect(self.playlist.previous)
 
-        shortcut_next = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_MediaNext), self)
+        shortcut_next = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Right), self)
         shortcut_next.activated.connect(self.playlist.next)
 
         #if is_admin:
@@ -600,6 +607,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if lib.supportedFormats.__contains__(split[len(split)-1]):
                     self.playlist.addMedia(
                             QtMultimedia.QMediaContent(url)
+                           
                     )
 
         self.playlistModel.layoutChanged.emit()
@@ -607,7 +615,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def playNewMedia(self):
         if self.isPlaying() == False and self.lastMediaCount == 0:
-            self.play()
+            self.pause()
 
     def switchMedia(self):
         selectedIndexes = self.playlistView.selectedIndexes()
