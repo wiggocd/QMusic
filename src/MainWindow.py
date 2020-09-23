@@ -50,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createCentralWidget()
         self.createMenus()
         self.createShortcuts()
-
+        currentwindow = 1
         self.show()
 
     def createWidgets(self,width,showart):
@@ -240,13 +240,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.playlistView.setCurrentIndex(self.playlistModel.index(index))
 
     def mini_button_clicked(self):
+        currentwindow=2
         self.left = 0
         self.top = 0
-        self.width = 200
-        self.height = 200
+        self.width = 270
+        self.height = 350
         self.title = "QMusic Miniplayer"
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
         self.createLayoutMain()
         self.createCentralWidget()
         self.createLayoutMini()
@@ -254,22 +254,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveDown.hide()
         self.control_playlist_moveUp.hide()
         self.control_playlist_clear.hide()
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.createLayoutMain()
+        self.createCentralWidget()
+        self.createLayoutMini()
+        self.createCentralWidget()
+        self.setFixedWidth(270)
+        self.setFixedHeight(350)
+
 
 
     def main_button_clicked(self):
+        currentwindow=2
         self.left = 0
         self.top = 0
         self.width = 660
         self.height = 400
         self.title = "QMusic"
-        self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
         self.createLayoutMain()
         self.control_playlist_moveDown.show()
         self.control_playlist_moveUp.show()
         self.control_playlist_clear.show()
         self.createCentralWidget()
+        self.setMaximumSize(8000,8000)
+        self.setGeometry(self.left, self.top, self.width, self.height)
         
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
@@ -460,6 +468,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.centralWidget = QtWidgets.QWidget()
         self.setCentralWidget(self.centralWidget)
         self.centralWidget.setLayout(self.vLayout)
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
     def createMenus(self):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
