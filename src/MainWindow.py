@@ -12,6 +12,7 @@ from typing import List
 #from pyside_material import apply_stylesheet
 import qdarkstyle
 import sys
+import darkdetect
 
 #keyboard: any
 #is_admin = lib.get_admin_status()
@@ -129,8 +130,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStyleSheet("")
 
     def initUI(self):
-        
-        self.setlighttheme()
+        if darkdetect.isDark()== True:
+            print("Dark")
+            self.setdarktheme()
+        else:
+            self.setlighttheme()
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
 
