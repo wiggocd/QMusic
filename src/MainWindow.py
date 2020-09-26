@@ -18,6 +18,10 @@ import darkdetect
 #is_admin = lib.get_admin_status()
 #lib.importKeyboard(is_admin)
 class PrefWindow(QtWidgets.QMainWindow):
+    def setdarktheme(self):
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+    def setlighttheme(self):
+        self.setStyleSheet("")
     themenumber=0
     def __init__(self):
         super().__init__()
@@ -29,7 +33,11 @@ class PrefWindow(QtWidgets.QMainWindow):
         self.initsetUI()
     
     def initsetUI(self):
-        self.setStyleSheet("")
+        if darkdetect.isDark()== True:
+            print("Dark")
+            self.setdarktheme()
+        else:
+            self.setlighttheme()
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
         self.createPrefWidgets()
@@ -42,10 +50,6 @@ class PrefWindow(QtWidgets.QMainWindow):
         self.darkcheck.toggled.connect(self.changetheme)
         self.lightcheck = QtWidgets.QRadioButton("Light",self)
         self.lightcheck.toggled.connect(self.changetheme)
-        self.themecolourlabel = QtWidgets.QLabel("Theme Colour")
-        self.redcheck = QtWidgets.QRadioButton("Red",self)
-        self.yellowcheck = QtWidgets.QRadioButton("Yellow",self)
-        self.bluecheck = QtWidgets.QRadioButton("Blue",self)
         self.autoplaycheck = QtWidgets.QCheckBox("Auto Play",self)
         self.repeatcheck = QtWidgets.QCheckBox("Repeat",self)
         self.shufflecheck = QtWidgets.QCheckBox("Shuffle",self)
@@ -55,10 +59,6 @@ class PrefWindow(QtWidgets.QMainWindow):
         preflayout.addWidget(self.themelabel,0,0)
         preflayout.addWidget(self.darkcheck,1,0)
         preflayout.addWidget(self.lightcheck,2,0)
-        preflayout.addWidget(self.themecolourlabel,0,1)
-        preflayout.addWidget(self.redcheck,1,1)
-        preflayout.addWidget(self.yellowcheck,2,1)
-        preflayout.addWidget(self.bluecheck,3,1)
         preflayout.addWidget(self.autoplaycheck,0,2)
         preflayout.addWidget(self.repeatcheck,1,2)
         preflayout.addWidget(self.shufflecheck,2,2)
@@ -93,7 +93,6 @@ class PrefWindow(QtWidgets.QMainWindow):
             self.mainwindow.connect_update_media()
             self.mainwindow.createLayoutMain()
             self.mainwindow.createCentralWidget()
-            self.mainwindow.createMenus()
             self.mainwindow.createShortcuts()
 
             
