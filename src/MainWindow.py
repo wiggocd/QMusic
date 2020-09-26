@@ -28,7 +28,7 @@ class PrefWindow(QtWidgets.QMainWindow):
         self.initsetUI()
     
     def initsetUI(self):
-        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+        self.setStyleSheet("")
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
         self.createPrefWidgets()
@@ -130,7 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initUI(self):
         
-        self.setdarktheme()
+        self.setlighttheme()
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
 
