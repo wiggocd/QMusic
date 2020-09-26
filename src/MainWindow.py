@@ -9,10 +9,97 @@ import os
 from playlist import PlaylistModel, PlaylistView
 import mutagen
 from typing import List
+#from pyside_material import apply_stylesheet
+import qdarkstyle
+import sys
 
 #keyboard: any
 #is_admin = lib.get_admin_status()
 #lib.importKeyboard(is_admin)
+class PrefWindow(QtWidgets.QMainWindow):
+    themenumber=0
+    def __init__(self):
+        super().__init__()
+        self.left = 0
+        self.top = 0
+        self.width = 60
+        self.height = 50
+        self.title = "QMusic Preferences"
+        self.initsetUI()
+    
+    def initsetUI(self):
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        self.createPrefWidgets()
+        self.createLayoutPref()
+        self.show()
+
+    def createPrefWidgets(self):
+        self.themelabel = QtWidgets.QLabel("Theme Type")
+        self.darkcheck = QtWidgets.QRadioButton("Dark",self)
+        self.darkcheck.toggled.connect(self.changetheme)
+        self.lightcheck = QtWidgets.QRadioButton("Light",self)
+        self.lightcheck.toggled.connect(self.changetheme)
+        self.themecolourlabel = QtWidgets.QLabel("Theme Colour")
+        self.redcheck = QtWidgets.QRadioButton("Red",self)
+        self.yellowcheck = QtWidgets.QRadioButton("Yellow",self)
+        self.bluecheck = QtWidgets.QRadioButton("Blue",self)
+        self.autoplaycheck = QtWidgets.QCheckBox("Auto Play",self)
+        self.repeatcheck = QtWidgets.QCheckBox("Repeat",self)
+        self.shufflecheck = QtWidgets.QCheckBox("Shuffle",self)
+    def createLayoutPref(self):
+        preflayout =  QtWidgets.QGridLayout()
+        preflayout.setSpacing(10)
+        preflayout.addWidget(self.themelabel,0,0)
+        preflayout.addWidget(self.darkcheck,1,0)
+        preflayout.addWidget(self.lightcheck,2,0)
+        preflayout.addWidget(self.themecolourlabel,0,1)
+        preflayout.addWidget(self.redcheck,1,1)
+        preflayout.addWidget(self.yellowcheck,2,1)
+        preflayout.addWidget(self.bluecheck,3,1)
+        preflayout.addWidget(self.autoplaycheck,0,2)
+        preflayout.addWidget(self.repeatcheck,1,2)
+        preflayout.addWidget(self.shufflecheck,2,2)
+        self.setLayout(preflayout)
+        self.centralWidget = QtWidgets.QWidget()
+        self.setCentralWidget(self.centralWidget)
+        self.centralWidget.setLayout(preflayout)
+    def changetheme(self,themenumber):
+        if self.darkcheck.isChecked()==True:
+            self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+            MainWindow.setdarktheme(self)
+            self.mainwindow = MainWindow()
+            self.mainwindow.setdarktheme()
+            self.mainwindow.createWidgets(64,1)
+            self.mainwindow.initPlayer()
+            self.mainwindow.initPlaylist()
+            self.mainwindow.init_playpause()
+            self.mainwindow.connect_update_media()
+            self.mainwindow.createLayoutMain()
+            self.mainwindow.createCentralWidget()
+            self.mainwindow.createMenus()
+            self.mainwindow.createShortcuts()
+        if self.lightcheck.isChecked()==True:
+            self.setStyleSheet("")
+            MainWindow.setlighttheme(self)
+            self.mainwindow = MainWindow()
+            self.mainwindow.setlighttheme()
+            self.mainwindow.createWidgets(64,1)
+            self.mainwindow.initPlayer()
+            self.mainwindow.initPlaylist()
+            self.mainwindow.init_playpause()
+            self.mainwindow.connect_update_media()
+            self.mainwindow.createLayoutMain()
+            self.mainwindow.createCentralWidget()
+            self.mainwindow.createMenus()
+            self.mainwindow.createShortcuts()
+
+            
+            
+        if self.lightcheck.isChecked()==True:
+            themenumber = 2
+            
 
 class MainWindow(QtWidgets.QMainWindow):
     #   -   init: call init on super, initUI:
@@ -27,7 +114,6 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Create central widget and set layout on central widget
     #       -   Create menus
     #       -   Show
-
     def __init__(self):
         super().__init__()
         self.left = 0
@@ -36,8 +122,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.height = 400
         self.title = "QMusic"
         self.initUI()
+    
+    def setdarktheme(self):
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+    def setlighttheme(self):
+        self.setStyleSheet("")
 
     def initUI(self):
+        
+        self.setdarktheme()
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
 
@@ -50,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createCentralWidget()
         self.createMenus()
         self.createShortcuts()
-        currentwindow = 1
+        
         self.show()
 
     def createWidgets(self,width,showart):
@@ -239,13 +332,17 @@ class MainWindow(QtWidgets.QMainWindow):
             if index > -1:
                 self.playlistView.setCurrentIndex(self.playlistModel.index(index))
 
+    def openpref(self):
+        self.preferenceswindow = PrefWindow()
+        self.preferenceswindow.show
+
     def mini_button_clicked(self):
-        currentwindow=2
+        
         self.left = 0
         self.top = 0
         self.width = 270
         self.height = 350
-        self.title = "QMusic Miniplayer"
+        self.title = "QMusic"
         self.setWindowTitle(self.title)
         self.createLayoutMain()
         self.createCentralWidget()
@@ -254,17 +351,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveDown.hide()
         self.control_playlist_moveUp.hide()
         self.control_playlist_clear.hide()
+        self.playlistView.hide()
+        self.coverart_label.hide()
         self.createLayoutMain()
         self.createCentralWidget()
         self.createLayoutMini()
         self.createCentralWidget()
-        self.setFixedWidth(270)
-        self.setFixedHeight(350)
+        self.setFixedWidth(350)
+        self.setFixedHeight(230)
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(18,18))
 
 
 
     def main_button_clicked(self):
-        currentwindow=2
         self.left = 0
         self.top = 0
         self.width = 660
@@ -275,9 +375,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveDown.show()
         self.control_playlist_moveUp.show()
         self.control_playlist_clear.show()
+        self.playlistView.show()
+        self.coverart_label.show()
         self.createCentralWidget()
         self.setMaximumSize(8000,8000)
         self.setGeometry(self.left, self.top, self.width, self.height)
+        self.control_playpause.setIcon(QtGui.QIcon("resources/control_play"))
+        self.control_playpause.setIconSize(QtCore.QSize(20,20))
+        self.control_playpause.pressed.connect(self.play)
         
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
@@ -490,6 +595,7 @@ class MainWindow(QtWidgets.QMainWindow):
         basichelp = QtWidgets.QAction("Basic Help", self)
         basichelp.triggered.connect(self.basic_help)
         basichelp.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+H", "Help|Basic Help")))
+        
 
         windowMenu = self.mainMenu.addMenu("Window")
         miniwindow = QtWidgets.QAction("Mini Player", self)
@@ -497,9 +603,17 @@ class MainWindow(QtWidgets.QMainWindow):
         mainwindow = QtWidgets.QAction("Main Player", self)
         mainwindow.triggered.connect(self.main_button_clicked)
 
+        prefMenu = self.mainMenu.addMenu("Pref")
+        pref = QtWidgets.QAction("Preferences", self)
+        pref.triggered.connect(self.openpref)
+        
+        prefMenu.addAction(pref)
+
         windowMenu.addAction(miniwindow)
         windowMenu.addAction(mainwindow)
+
         helpMenu.addAction(basichelp)
+        
         fileMenu.addAction(openAction)
         fileMenu.addAction(removeAction)
         fileMenu.addAction(clearPlaylistAction)
