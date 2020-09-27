@@ -4,6 +4,7 @@ keyboard
 mutagen
 darkdetect
 qdarkstyle
+lyricsgenius
 #audio-metadata
 #nuitka
 #pyinstaller
