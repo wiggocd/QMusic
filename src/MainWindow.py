@@ -13,10 +13,99 @@ from typing import List
 import qdarkstyle
 import sys
 import darkdetect
-
+import lyricsgenius
+token = lyricsgenius.Genius("AwxNghHLIPG4Zs97LyrQLtRfDZEWTKJdF6ecdYCEmkDcA3CQiCXFZHrkBeUcQvBd")
 #keyboard: any
 #is_admin = lib.get_admin_status()
 #lib.importKeyboard(is_admin)
+songtext = ""
+artisttext = ""
+class lyricWindow(QtWidgets.QMainWindow):
+    def setdarktheme(self):
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+    def setlighttheme(self):
+        self.setStyleSheet("")
+    def __init__(self):
+        super().__init__()
+        self.left = 0
+        self.top = 0
+        self.width = 300
+        self.height = 300
+        self.title = "QMusic Lyrics"
+        self.initlyricUI()
+    def initlyricUI(self):
+        if darkdetect.isDark()== True:
+            self.setdarktheme()
+        else:
+            self.setlighttheme()
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        self.createLyricWidgets()
+        self.createLayoutLyric()
+        self.show()
+    def createLyricWidgets(self):
+        self.artistlabel = QtWidgets.QLabel("Artist")
+        self.songlabel = QtWidgets.QLabel("Song")
+        self.artistbox = QtWidgets.QLineEdit()
+        self.artistbox.textChanged.connect(self.artistboxchanged)
+        self.songbox = QtWidgets.QLineEdit()
+        self.songbox.textChanged.connect(self.songboxchanged)
+        self.searchbutton = QtWidgets.QPushButton("Search")
+        self.searchbutton.pressed.connect(self.searchclicked)
+        self.scroll = QtWidgets.QScrollArea()
+        self.outputlabel = QtWidgets.QLabel()
+        self.outputlabel.setWordWrap(True)
+        self.scroll.setWidget(self.outputlabel)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFixedHeight(8000)
+    def createLayoutLyric(self):
+        lyriclayouttopgroup = QtWidgets.QGroupBox()
+        lyriclayoutbuttongroup = QtWidgets.QGroupBox()
+        lyriclayouttextgroup = QtWidgets.QGroupBox()
+
+        lyriclayouttop = QtWidgets.QGridLayout()
+        lyriclayouttop.setSpacing(10)
+        lyriclayouttop.addWidget(self.artistlabel,0,0)
+        lyriclayouttop.addWidget(self.artistbox,0,1)
+        lyriclayouttop.addWidget(self.songlabel,1,0)
+        lyriclayouttop.addWidget(self.songbox,1,1)
+
+
+
+        lyriclayoutbutton = QtWidgets.QHBoxLayout()
+        lyriclayoutbutton.addWidget(self.searchbutton)
+
+        lyriclayouttext = QtWidgets.QHBoxLayout()
+        lyriclayouttext.addWidget(self.scroll)
+
+        lyriclayouttopgroup.setLayout(lyriclayouttop)
+        lyriclayoutbuttongroup.setLayout(lyriclayoutbutton)
+        lyriclayouttextgroup.setLayout(lyriclayouttext)
+
+        self.lyriclayout = QtWidgets.QVBoxLayout()
+        self.lyriclayout.addWidget(lyriclayouttopgroup)
+        self.lyriclayout.addWidget(lyriclayoutbuttongroup)
+        self.lyriclayout.addWidget(lyriclayouttextgroup)
+    
+        self.setLayout(self.lyriclayout)
+        self.centralWidget = QtWidgets.QWidget()
+        self.setCentralWidget(self.centralWidget)
+        self.centralWidget.setLayout(self.lyriclayout)
+    def songboxchanged(self,text):
+        global songtext
+        songtext = text
+    def artistboxchanged(self,text):
+        global artisttext
+        artisttext = text
+
+    def searchclicked(self):
+        global artisttext
+        global songtext
+        song = token.search_song(songtext, artisttext)
+        self.outputlabel.setText(song.lyrics)
+
+
+
 class PrefWindow(QtWidgets.QMainWindow):
     def setdarktheme(self):
         self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
@@ -34,7 +123,6 @@ class PrefWindow(QtWidgets.QMainWindow):
     
     def initsetUI(self):
         if darkdetect.isDark()== True:
-            print("Dark")
             self.setdarktheme()
         else:
             self.setlighttheme()
@@ -130,7 +218,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initUI(self):
         if darkdetect.isDark()== True:
-            print("Dark")
             self.setdarktheme()
         else:
             self.setlighttheme()
@@ -161,6 +248,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.main_player_button = QtWidgets.QPushButton("Main Player")
         self.main_player_button.clicked.connect(self.main_button_clicked)
+
+        self.prefbutton = QtWidgets.QPushButton("Preferences")
+        self.prefbutton.clicked.connect(self.openpref)
+
+        self.lyricbutton = QtWidgets.QPushButton("Lyrics")
+        self.lyricbutton.clicked.connect(self.openlyrics)
 
         self.control_previous.setIcon(QtGui.QIcon("resources/control_previous"))
         self.control_previous.setIconSize(QtCore.QSize(20,20))
@@ -338,6 +431,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def openpref(self):
         self.preferenceswindow = PrefWindow()
         self.preferenceswindow.show
+    
+    def openlyrics(self):
+        self.lyricswindow = lyricWindow()
+        self.lyricswindow.show
+
 
     def mini_button_clicked(self):
         
@@ -355,6 +453,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveUp.hide()
         self.control_playlist_clear.hide()
         self.playlistView.hide()
+        self.prefbutton.hide()
+        self.lyricbutton.hide()
         self.coverart_label.hide()
         self.createLayoutMain()
         self.createCentralWidget()
@@ -379,6 +479,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_moveUp.show()
         self.control_playlist_clear.show()
         self.playlistView.show()
+        self.prefbutton.show()
+        self.lyricbutton.show()
         self.coverart_label.show()
         self.createCentralWidget()
         self.setMaximumSize(8000,8000)
@@ -514,6 +616,8 @@ class MainWindow(QtWidgets.QMainWindow):
         actionsLayout.addWidget(self.control_playlist_clear)
         actionsLayout.addWidget(self.mini_player_button)
         actionsLayout.addWidget(self.main_player_button)
+        actionsLayout.addWidget(self.prefbutton)
+        actionsLayout.addWidget(self.lyricbutton)
         
 
         self.vLayout = QtWidgets.QVBoxLayout()
@@ -547,6 +651,8 @@ class MainWindow(QtWidgets.QMainWindow):
         actionsLayout.addWidget(self.control_playlist_moveDown)
         actionsLayout.addWidget(self.control_playlist_moveUp)
         actionsLayout.addWidget(self.control_playlist_clear)
+        actionsLayout.addWidget(self.prefbutton)
+        actionsLayout.addWidget(self.lyricbutton)
 
         switchLayoutButtons = QtWidgets.QHBoxLayout()
         switchLayoutButtons.addWidget(self.main_player_button)
