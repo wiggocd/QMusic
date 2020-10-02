@@ -8,15 +8,18 @@ from typing import Union, List
 from PySide2 import QtGui, QtCore
 import mutagen
 
+progName = "QMusic"
+textColour = "A7A7A7"
+configDir: str = None
+mediaFileName = "media.txt"
+
 supportedFormats = [
     "wav",
     "mp3",
     "flac"
 ]
 
-textColour = "A7A7A7"
-
-def get_execpath() -> str:
+def get_execdir() -> str:
     return os.path.dirname(os.path.realpath(__file__))
 
 def get_resourcepath(resourceName: str, execpath: str) -> str:
@@ -101,6 +104,29 @@ def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, No
     else:
         return None
 
+#
+#   Revise
+#
+
+def get_configDir(progName: str) -> str:
+    # Use expanduser with nested config directory
+    return os.path.join(os.path.expanduser("~"), ".config", progName)
+
+def create_configDir(configDir: str):
+    # Check if the directory exists and create it if not
+    if not os.path.isdir(configDir):
+        os.makedirs(configDir)
+
+def writeToConfig(configDir: str, configFileName: str, strings: List[str]):
+    # Open file and write each string as a line
+    with open(os.path.join(configDir, configFileName), "w") as openFile:
+        for path in strings:
+            openFile.write(path + "\n")
+
+def clearConfigFile(configDir: str, configFileName: str):
+    # Open file and write it to empty
+    with open(os.path.join(configDir, configFileName), "w") as openFile:
+        openFile.write("")
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):

@@ -25,7 +25,8 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Initialise playlist
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
-    #       -   Create menus
+    #       -   Create menus and shortcuts
+    #       -   Add media from config and reset lastMediaCount
     #       -   Show
 
     def __init__(self):
@@ -34,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.top = 0
         self.width = 430
         self.height = 320
-        self.title = "QMusic"
+        self.title = lib.progName
         
         self.initUI()
 
@@ -51,6 +52,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createCentralWidget()
         self.createMenus()
         self.createShortcuts()
+
+        self.addMediaFromConfig()
+        self.lastMediaCount = 0
 
         self.show()
 
@@ -201,7 +205,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() - 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() - 1)), QtCore.QItemSelectionModel.Select)
 
     def playlist_clear(self):
+        # Clear the playlist, clear the media config log and emit the playlist model layout changed signal
         self.playlist.clear()
+        lib.clearConfigFile(lib.configDir, lib.mediaFileName)
+        self.playlistModel.layoutChanged.emit()
     
     #
     #   Revise
@@ -394,6 +401,28 @@ class MainWindow(QtWidgets.QMainWindow):
         # Check new media and play if conditions are met
         self.playNewMedia()
 
+        # Write media to config
+        self.writeMediaToConfig()
+
+    def addMediaFromConfig(self):
+        # Read in each line of the media log to a list and add the media content from each path to the playlist
+        paths: List[str] = []
+        with open(os.path.join(lib.configDir, lib.mediaFileName), "r") as mediaData:
+            paths = mediaData.read().split("\n")
+
+        for path in paths:
+            if path != "":
+                self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path)))
+
+    def writeMediaToConfig(self):
+        # Add path from canonical url string of each media item in the playlist to a list and write it to the config
+        paths: List[str] = []
+        for i in range(self.playlist.mediaCount()):
+            urlString = self.playlist.media(i).canonicalUrl().toString()
+            paths.append(lib.urlStringToPath(urlString))
+        
+        lib.writeToConfig(lib.configDir, lib.mediaFileName, paths)
+
     def isPlaying(self) -> bool:
         if self.player.state() == QtMultimedia.QMediaPlayer.PlayingState:
             return True
@@ -445,6 +474,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Emit model layout change
     #       -   Call playNewMedia:
     #           - If not playing and last media count was 0, play
+    #       -   Write media to config
     #
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
@@ -482,6 +512,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.playlistModel.layoutChanged.emit()
         self.playNewMedia()
+        self.writeMediaToConfig()
 
     def playNewMedia(self):
         if self.isPlaying() == False and self.lastMediaCount == 0:
