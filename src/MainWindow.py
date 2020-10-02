@@ -116,6 +116,33 @@ class MainWindow(QtWidgets.QMainWindow):
         if position > player_position + 1 or position < player_position - 1:
             self.player.setPosition(position)
 
+        # If position is near the end, fade out
+        duration = self.player.duration()
+        if not self.isTransitioning and position > duration - 2000:
+            self.isTransitioning = True
+            # self.fadeOut()
+
+        # If transitioning and the new track has started, reset the transitioning state and restore volume
+        if self.isTransitioning and position < 1000:
+            self.isTransitioning = False
+            self.restoreVolume()
+
+    def fadeOut(self):
+        # Set the last volume and lower volume by incriment every x ms until the volume is equal to 0
+        self.lastVolume = self.player.volume()
+
+        timer = QtCore.QTimer()
+        volume = self.lastVolume
+        while volume != 0:
+            if timer.remainingTime() == 0:
+                volume -= 1
+                self.player.setVolume(volume)
+                timer.start(200)
+
+    def restoreVolume(self):
+        # Set the player volume to the last recorded volume
+        self.player.setVolume(self.lastVolume)
+
     def update_duration(self, duration: int):
         # Set time slider maximum and set total time label text formatted from argument
         self.timeSlider.setMaximum(duration)

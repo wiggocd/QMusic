@@ -16,6 +16,7 @@ mediaFileName = "media.txt"
 supportedFormats = [
     "wav",
     "mp3",
+    "m4a",
     "flac"
 ]
 
