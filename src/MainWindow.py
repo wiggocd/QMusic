@@ -26,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Add media from config and reset lastMediaCount
+    #       -   Add media from config, reset lastMediaCount, isTransitioning and lastVolume variables
     #       -   Show
 
     def __init__(self):
@@ -55,6 +55,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.addMediaFromConfig()
         self.lastMediaCount = 0
+        self.isTransitioning = False
+        self.lastVolume = self.player.volume()
 
         self.show()
 
@@ -109,6 +111,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.player.positionChanged.connect(self.update_position)
 
     def setPosition(self, position: int):
+        # Get player position and if the new slider position has changed, set the player position
         player_position = self.player.position()
         if position > player_position + 1 or position < player_position - 1:
             self.player.setPosition(position)
@@ -164,8 +167,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def playlist_moveDown(self):
         selectedIndexes = self.playlistView.selectedIndexes()
-        
-        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False:
+        currentPlaylistIndex = self.playlist.currentIndex()
+
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[len(selectedIndexes) - 1].row() + 1 > currentPlaylistIndex:
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
@@ -185,8 +189,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def playlist_moveUp(self):
         selectedIndexes = self.playlistView.selectedIndexes()
+        currentPlaylistIndex = self.playlist.currentIndex()
         
-        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False and selectedIndexes[0].row() - 1 != self.playlist.currentIndex():
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[0].row() - 1 > currentPlaylistIndex:
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
