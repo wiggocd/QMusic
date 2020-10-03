@@ -9,13 +9,20 @@ import os
 from playlist import PlaylistModel, PlaylistView
 import mutagen
 from typing import List
+import threading
+import time
 
 is_admin = lib.get_admin_status()
 if is_admin:
     import keyboard
 
 class MainWindow(QtWidgets.QMainWindow):
-    #   -   init: call init on super, initUI:
+    #   -   init: 
+    #       -   Call init on super
+    #       -   Set geometry variables
+    #       -   Set player fade rates
+    #       -   Call initUI
+    #   -   initUI:
     #       -   Set geometry and title
     #       -   Set variable with path to executable to find resources later on
     #       -   Create widgets: buttons for media controls, labels, sliders
@@ -26,7 +33,8 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Add media from config, reset lastMediaCount, isTransitioning and lastVolume variables
+    #       -   Add media from config, reset lastMediaCount, isTransitioning, isFading and lastVolume variables
+    #       -   Set variables for fade out and in rates
     #       -   Show
 
     def __init__(self):
@@ -36,6 +44,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.width = 430
         self.height = 320
         self.title = lib.progName
+
+        self.rate_ms_fadeOut = 200
+        self.rate_ms_fadeIn = 200
         
         self.initUI()
 
@@ -56,6 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addMediaFromConfig()
         self.lastMediaCount = 0
         self.isTransitioning = False
+        self.isFading = False
         self.lastVolume = self.player.volume()
 
         self.show()
@@ -118,29 +130,52 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # If position is near the end, fade out
         duration = self.player.duration()
-        if not self.isTransitioning and position > duration - 2000:
+        if not self.isTransitioning and position > duration - 1000:
             self.isTransitioning = True
-            # self.fadeOut()
+            self.fadeOut()
 
         # If transitioning and the new track has started, reset the transitioning state and restore volume
-        if self.isTransitioning and position < 1000:
-            self.isTransitioning = False
-            self.restoreVolume()
+        if self.isTransitioning and not self.isFading and position < duration - 1000:
+            self.fadeIn()
 
     def fadeOut(self):
-        # Set the last volume and lower volume by incriment every x ms until the volume is equal to 0
+        # Run the fade out on a new thread with the function set as the target for the thread and by calling start
+        self.fadeThread = threading.Thread(target=self._fadeOut)
+        self.fadeThread.start()
+        
+    def _fadeOut(self):
+        # Set the last volume and lower volume by incriment every x ms until the volume is equal to 0, exit if the track has already switched
         self.lastVolume = self.player.volume()
-
-        timer = QtCore.QTimer()
         volume = self.lastVolume
-        while volume != 0:
-            if timer.remainingTime() == 0:
-                volume -= 1
-                self.player.setVolume(volume)
-                timer.start(200)
+        self.lastTrackIndex = self.playlist.currentIndex()
+        while volume != 0 and self.playlist.currentIndex() == self.lastTrackIndex:
+            volume -= 1
+            self.player.setVolume(volume)
+            self.isFading = True
+            time.sleep(1 / self.rate_ms_fadeOut)
+        
+        self.isFading = False
+
+    def fadeIn(self):
+        # Run the fade in on a new thread with the function set as the target for the thread and by calling start
+        self.fadeThread = threading.Thread(target=self._fadeIn)
+        self.fadeThread.start()
+
+    def _fadeIn(self):
+        # Increase volume by incriment every x ms until the volume has reached the pre-fade volume, reset isTransitioning
+        volume = self.player.volume()
+        while volume != self.lastVolume:
+            volume += 1
+            self.player.setVolume(volume)
+            self.isFading = True
+            time.sleep(1 / self.rate_ms_fadeIn)
+
+        self.isFading = False
+        self.isTransitioning = False
 
     def restoreVolume(self):
         # Set the player volume to the last recorded volume
+        print("Restoring volume")
         self.player.setVolume(self.lastVolume)
 
     def update_duration(self, duration: int):
