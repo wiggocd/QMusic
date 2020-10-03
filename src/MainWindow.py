@@ -154,6 +154,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.isFading = True
             time.sleep(1 / self.rate_ms_fadeOut)
         
+        # If not fading and the track has changed, instantly restore the volume to prevent volume from staying at 0
+        if not self.isFading and self.playlist.currentIndex() != self.lastTrackIndex:
+            self.restoreVolume()
+        
         self.isFading = False
 
     def fadeIn(self):
