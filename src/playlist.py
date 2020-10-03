@@ -22,6 +22,7 @@ class PlaylistModel(QtCore.QAbstractListModel):
     #               Return canonical file name of media from playlist at index row
     #   rowCount:
     #       -   Return playlist media count
+    #
 
     def __init__(self, playlist: QtMultimedia.QMediaPlaylist):
         super().__init__()
@@ -45,9 +46,13 @@ class PlaylistModel(QtCore.QAbstractListModel):
 
 
 class PlaylistView(QtWidgets.QListView):
+    #   init:
+    #       -   Set view model from parameter
+    #       -   Drag and drop (non-functioning atm) - set movement to snap, drag drop to internal move, and disable drag drop overwrite
+    #
+
     def __init__(self, model: QtCore.QAbstractListModel, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-
         self.setModel(model)
         self.setMovement(QtWidgets.QListView.Snap)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)

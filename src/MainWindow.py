@@ -9,6 +9,8 @@ import os
 from playlist import PlaylistModel, PlaylistView
 import mutagen
 from typing import List
+import threading
+import time
 #from pyside_material import apply_stylesheet
 import qdarkstyle
 import sys
@@ -183,6 +185,7 @@ class PrefWindow(QtWidgets.QMainWindow):
             self.mainwindow.createCentralWidget()
             self.mainwindow.createShortcuts()
 
+
             
             
         if self.lightcheck.isChecked()==True:
@@ -190,7 +193,12 @@ class PrefWindow(QtWidgets.QMainWindow):
             
 
 class MainWindow(QtWidgets.QMainWindow):
-    #   -   init: call init on super, initUI:
+    #   -   init: 
+    #       -   Call init on super
+    #       -   Set geometry variables
+    #       -   Set player fade rates
+    #       -   Call initUI
+    #   -   initUI:
     #       -   Set geometry and title
     #       -   Set variable with path to executable to find resources later on
     #       -   Create widgets: buttons for media controls, labels, sliders
@@ -200,15 +208,21 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Initialise playlist
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
-    #       -   Create menus
+    #       -   Create menus and shortcuts
+    #       -   Add media from config, reset lastMediaCount, isTransitioning, isFading and lastVolume variables
+    #       -   Set variables for fade out and in rates
     #       -   Show
     def __init__(self):
         super().__init__()
         self.left = 0
         self.top = 0
-        self.width = 660
-        self.height = 400
-        self.title = "QMusic"
+        self.width = 430
+        self.height = 320
+        self.title = lib.progName
+
+        self.rate_ms_fadeOut = 200
+        self.rate_ms_fadeIn = 200
+        
         self.initUI()
     
     def setdarktheme(self):
@@ -233,7 +247,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createCentralWidget()
         self.createMenus()
         self.createShortcuts()
-        
+
+        self.addMediaFromConfig()
+        self.lastMediaCount = 0
+        self.isTransitioning = False
+        self.isFading = False
+        self.lastVolume = self.player.volume()
+
         self.show()
 
     def createWidgets(self,width,showart):
@@ -309,9 +329,64 @@ class MainWindow(QtWidgets.QMainWindow):
         self.player.positionChanged.connect(self.update_position)
 
     def setPosition(self, position: int):
+        # Get player position and if the new slider position has changed, set the player position
         player_position = self.player.position()
         if position > player_position + 1 or position < player_position - 1:
             self.player.setPosition(position)
+
+        # If position is near the end, fade out
+        duration = self.player.duration()
+        if not self.isTransitioning and position > duration - 1000:
+            self.isTransitioning = True
+            self.fadeOut()
+
+        # If transitioning and the new track has started, reset the transitioning state and restore volume
+        if self.isTransitioning and not self.isFading and position < duration - 1000:
+            self.fadeIn()
+
+    def fadeOut(self):
+        # Run the fade out on a new thread with the function set as the target for the thread and by calling start
+        self.fadeThread = threading.Thread(target=self._fadeOut)
+        self.fadeThread.start()
+        
+    def _fadeOut(self):
+        # Set the last volume and lower volume by incriment every x ms until the volume is equal to 0, exit if the track has already switched
+        self.lastVolume = self.player.volume()
+        volume = self.lastVolume
+        self.lastTrackIndex = self.playlist.currentIndex()
+        while volume != 0 and self.playlist.currentIndex() == self.lastTrackIndex:
+            volume -= 1
+            self.player.setVolume(volume)
+            self.isFading = True
+            time.sleep(1 / self.rate_ms_fadeOut)
+        
+        # If not fading and the track has changed, instantly restore the volume to prevent volume from staying at 0
+        if not self.isFading and self.playlist.currentIndex() != self.lastTrackIndex:
+            self.restoreVolume()
+        
+        self.isFading = False
+
+    def fadeIn(self):
+        # Run the fade in on a new thread with the function set as the target for the thread and by calling start
+        self.fadeThread = threading.Thread(target=self._fadeIn)
+        self.fadeThread.start()
+
+    def _fadeIn(self):
+        # Increase volume by incriment every x ms until the volume has reached the pre-fade volume, reset isTransitioning
+        volume = self.player.volume()
+        while volume != self.lastVolume:
+            volume += 1
+            self.player.setVolume(volume)
+            self.isFading = True
+            time.sleep(1 / self.rate_ms_fadeIn)
+
+        self.isFading = False
+        self.isTransitioning = False
+
+    def restoreVolume(self):
+        # Set the player volume to the last recorded volume
+        print("Restoring volume")
+        self.player.setVolume(self.lastVolume)
 
     def update_duration(self, duration: int):
         # Set time slider maximum and set total time label text formatted from argument
@@ -364,8 +439,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def playlist_moveDown(self):
         selectedIndexes = self.playlistView.selectedIndexes()
-        
-        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False:
+        currentPlaylistIndex = self.playlist.currentIndex()
+
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[len(selectedIndexes) - 1].row() + 1 > currentPlaylistIndex:
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
@@ -385,8 +461,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def playlist_moveUp(self):
         selectedIndexes = self.playlistView.selectedIndexes()
+        currentPlaylistIndex = self.playlist.currentIndex()
         
-        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(self.playlist.currentIndex())) == False and selectedIndexes[0].row() - 1 != self.playlist.currentIndex():
+        if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[0].row() - 1 > currentPlaylistIndex:
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
@@ -405,7 +482,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() - 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() - 1)), QtCore.QItemSelectionModel.Select)
 
     def playlist_clear(self):
+        # Clear the playlist, clear the media config log and emit the playlist model layout changed signal
         self.playlist.clear()
+        lib.clearConfigFile(lib.configDir, lib.mediaFileName)
+        self.playlistModel.layoutChanged.emit()
     
     #
     #   Revise
@@ -755,6 +835,28 @@ class MainWindow(QtWidgets.QMainWindow):
         # Check new media and play if conditions are met
         self.playNewMedia()
 
+        # Write media to config
+        self.writeMediaToConfig()
+
+    def addMediaFromConfig(self):
+        # Read in each line of the media log to a list and add the media content from each path to the playlist
+        paths: List[str] = []
+        with open(os.path.join(lib.configDir, lib.mediaFileName), "r") as mediaData:
+            paths = mediaData.read().split("\n")
+
+        for path in paths:
+            if path != "":
+                self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path)))
+
+    def writeMediaToConfig(self):
+        # Add path from canonical url string of each media item in the playlist to a list and write it to the config
+        paths: List[str] = []
+        for i in range(self.playlist.mediaCount()):
+            urlString = self.playlist.media(i).canonicalUrl().toString()
+            paths.append(lib.urlStringToPath(urlString))
+        
+        lib.writeToConfig(lib.configDir, lib.mediaFileName, paths)
+
     def isPlaying(self) -> bool:
         if self.player.state() == QtMultimedia.QMediaPlayer.PlayingState:
             return True
@@ -806,6 +908,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Emit model layout change
     #       -   Call playNewMedia:
     #           - If not playing and last media count was 0, play
+    #       -   Write media to config
     #
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
@@ -844,6 +947,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.playlistModel.layoutChanged.emit()
         self.playNewMedia()
+        self.writeMediaToConfig()
 
     def playNewMedia(self):
         if self.isPlaying() == False and self.lastMediaCount == 0:
