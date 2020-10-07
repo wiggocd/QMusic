@@ -228,52 +228,74 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pause()
 
     #
-    #   Todo: add comments for playlist move functions
+    #   Revise
     #
 
     def playlist_moveDown(self):
+        # Get selected indexes on the playlist view and save the current playlist index
         selectedIndexes = self.playlistView.selectedIndexes()
         currentPlaylistIndex = self.playlist.currentIndex()
 
+        # If there are selected indexes in the index list, the index list does not contain the current track and the index after (+1) the last selected index is larger than the current index
         if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[len(selectedIndexes) - 1].row() + 1 > currentPlaylistIndex:
+            # Get the first and maximum index rows
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
-            media: List[QtMultimedia.QMediaContent] = []
-            for i in range(firstIndex, maxIndex + 1):
-                media.append(self.playlist.media(i))
+            # Get selected media
+            media = self.getSelectedMedia()
             
+            # Set the previous selected indexes
             previousSelectedIndexes = self.playlistView.selectedIndexes()
 
+            # Insert all of the media in the list to 2 indexes after the current on the playlist, remove the previous original media instances from the playlist and emit the playlist model layout change signal
             self.playlist.insertMedia(firstIndex + 2, media)
             self.playlist.removeMedia(firstIndex, maxIndex)
             self.playlistModel.layoutChanged.emit()
 
+            # On the playlist view selection model, call the select function with the selection model deselect parameter to deselect all of the items in the previus selected indexes
             len_previousSelectedIndexes = len(previousSelectedIndexes)
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(previousSelectedIndexes[0], previousSelectedIndexes[len_previousSelectedIndexes - 1]), QtCore.QItemSelectionModel.Deselect)
+
+            # On the playlist view selection model, call the select function with the selection model select parameter to select all of the moved selected indexes (all of the previous selected indexes shifted by 1 over)
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() + 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() + 1)), QtCore.QItemSelectionModel.Select)
 
     def playlist_moveUp(self):
+        # Get selected indexes on the playlist view and save the current playlist index
         selectedIndexes = self.playlistView.selectedIndexes()
         currentPlaylistIndex = self.playlist.currentIndex()
         
+        # If there are selected indexes in the index list, the index list does not contain the current track and the index before (-1) the last selected index is larger than the current index
         if len(selectedIndexes) > 0 and selectedIndexes.__contains__(self.playlistModel.index(currentPlaylistIndex)) == False and selectedIndexes[0].row() - 1 > currentPlaylistIndex:
+            # Get the first and maximum index rows
             firstIndex = selectedIndexes[0].row()
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
-            media: List[QtMultimedia.QMediaContent] = []
-            for i in range(firstIndex, maxIndex + 1):
-                media.append(self.playlist.media(i))
+            # Get selected media
+            media = self.getSelectedMedia()
             
+            # Set the previous selected indexes
             previousSelectedIndexes = self.playlistView.selectedIndexes()
 
+            # Insert all of the media in the list to 1 indexes before the current on the playlist, remove the previous original media instances (+1 to first and maximum) from the playlist and emit the playlist model layout change signal
             self.playlist.insertMedia(firstIndex - 1, media)
             self.playlist.removeMedia(firstIndex + 1, maxIndex + 1)
             self.playlistModel.layoutChanged.emit()
 
+            # On the playlist view selection model, call the select function with the selection model deselect parameter to deselect all of the items in the previus selected indexes
             len_previousSelectedIndexes = len(previousSelectedIndexes)
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(previousSelectedIndexes[0], previousSelectedIndexes[len_previousSelectedIndexes - 1]), QtCore.QItemSelectionModel.Deselect)
+
+            # On the playlist view selection model, call the select function with the selection model select parameter to select all of the moved selected indexes (all of the previous selected indexes shifted by 1 before)
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() - 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() - 1)), QtCore.QItemSelectionModel.Select)
+
+    def getSelectedMedia(self):
+        # Append all selected media + 1 from playlist to a QMediaContent list
+        media: List[QtMultimedia.QMediaContent] = []
+        for i in range(firstIndex, maxIndex + 1):
+            media.append(self.playlist.media(i))
+        
+        return media
 
     def playlist_clear(self):
         # Clear the playlist, clear the media config log and emit the playlist model layout changed signal
