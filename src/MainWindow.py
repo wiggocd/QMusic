@@ -106,10 +106,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create playlist action buttons and connect pressed signals
         self.control_playlist_moveDown = QtWidgets.QPushButton(self.tr("Move Down"))
         self.control_playlist_moveUp = QtWidgets.QPushButton(self.tr("Move Up"))
+        self.control_playlist_remove = QtWidgets.QPushButton(self.tr("Remove"))
         self.control_playlist_clear = QtWidgets.QPushButton(self.tr("Clear"))
 
         self.control_playlist_moveDown.pressed.connect(self.playlist_moveDown)
         self.control_playlist_moveUp.pressed.connect(self.playlist_moveUp)
+        self.control_playlist_remove.pressed.connect(self.removeMedia)
         self.control_playlist_clear.pressed.connect(self.playlist_clear)
 
     def initPlayer(self):
@@ -276,7 +278,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
             # Set the previous selected indexes
             previousSelectedIndexes = self.playlistView.selectedIndexes()
-
+            
             # Insert all of the media in the list to 1 indexes before the current on the playlist, remove the previous original media instances (+1 to first and maximum) from the playlist and emit the playlist model layout change signal
             self.playlist.insertMedia(firstIndex - 1, media)
             self.playlist.removeMedia(firstIndex + 1, maxIndex + 1)
@@ -436,6 +438,7 @@ class MainWindow(QtWidgets.QMainWindow):
         actionsLayout = QtWidgets.QHBoxLayout()
         actionsLayout.addWidget(self.control_playlist_moveDown)
         actionsLayout.addWidget(self.control_playlist_moveUp)
+        actionsLayout.addWidget(self.control_playlist_remove)
         actionsLayout.addWidget(self.control_playlist_clear)
 
         self.vLayout = QtWidgets.QVBoxLayout()
@@ -453,49 +456,93 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
         self.mainMenu = self.menuBar()
         fileMenu = self.mainMenu.addMenu("File")
+        playlistMenu = self.mainMenu.addMenu("Playlist")
 
-        openAction = QtWidgets.QAction("Open", self)
-        openAction.triggered.connect(self.open_file)
-        openAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
+        openFileAction = QtWidgets.QAction("Open File", self)
+        openFileAction.triggered.connect(self.open_files)
+        openFileAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
 
-        removeAction = QtWidgets.QAction("Remove", self)
-        removeAction.triggered.connect(self.removeMedia)
+        openDirAction = QtWidgets.QAction("Open Directory", self)
+        openDirAction.triggered.connect(self.open_directory)
+        openDirAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+O", "File|Open Directory")))
 
-        clearPlaylistAction = QtWidgets.QAction("Clear Playlist", self)
-        clearPlaylistAction.triggered.connect(self.playlist_clear)
-        clearPlaylistAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "File|Clear Playlist")))
+        playlistRemoveAction = QtWidgets.QAction("Remove", self)
+        playlistRemoveAction.triggered.connect(self.removeMedia)
 
-        fileMenu.addAction(openAction)
-        fileMenu.addAction(removeAction)
-        fileMenu.addAction(clearPlaylistAction)
+        playlistClearAction = QtWidgets.QAction("Clear", self)
+        playlistClearAction.triggered.connect(self.playlist_clear)
+        playlistClearAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "Playlist|Clear")))
 
-    def open_file(self):
+        fileMenu.addAction(openFileAction)
+        fileMenu.addAction(openDirAction)
+        playlistMenu.addAction(playlistRemoveAction)
+        playlistMenu.addAction(playlistClearAction)
+
+    def open_files(self):
         # Set last media count for playlist media check later on
         self.lastMediaCount = self.playlist.mediaCount()
         
         # Set paths from QFileDialog getOpenFileNames, filetypes formatted as "Name (*.extension);;Name" etc.
-        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(self, self.tr("Open File"), "", self.tr("All Files (*.*);;Waveform Audio (*.wav);;mp3 Audio (*.mp3)"))
 
         # For each path, add media QMediaContent from local file to playlist if the filetype is supported
         if paths:
             for path in paths:
-                split = path.split(os.path.extsep)
-
-                if lib.supportedFormats.__contains__(split[len(split)-1]):
+                if self.isSupportedFileFormat(path):
                     self.playlist.addMedia(
                         QtMultimedia.QMediaContent(
                             QtCore.QUrl.fromLocalFile(path)
                         )
                     )
 
-        # Emit playlist model layout change and play if paused
-        self.playlistModel.layoutChanged.emit()
+            # Emit playlist model layout change and play if paused
+            self.playlistModel.layoutChanged.emit()
 
-        # Check new media and play if conditions are met
-        self.playNewMedia()
+            # Check new media and play if conditions are met
+            self.playNewMedia()
 
-        # Write media to config
-        self.writeMediaToConfig()
+            # Write media to config
+            self.writeMediaToConfig()
+
+    def isSupportedFileFormat(self, path: str) -> bool:
+        # Split the path by the extension separator and if the list of supported formats contains the last element of the list, return true
+        split = path.split(os.path.extsep)
+
+        if lib.supportedFormats.__contains__(split[len(split)-1]):
+            return True
+        else:
+            return False
+
+    def open_directory(self):
+        # Set last media count for playlist media check later on
+        self.lastMediaCount = self.playlist.mediaCount()
+
+        # Set directory from QFileDialog getExistingDirectory
+        dirPath = QtWidgets.QFileDialog.getExistingDirectory(self, self.tr("Open Folder"), "")
+
+        # If a path was returned, get a directory listing, sort it and for every file in the list get the full path: if the format is supported, add the media to the playlist with a QMediaContent instance from the local file
+        if dirPath:
+            dirList = os.listdir(dirPath)
+            dirList.sort()
+            
+            for fname in dirList:
+                path = os.path.join(dirPath, fname)
+                
+                if self.isSupportedFileFormat(path):
+                    self.playlist.addMedia(
+                        QtMultimedia.QMediaContent(
+                            QtCore.QUrl.fromLocalFile(path)
+                        )
+                    )
+
+            # Emit playlist model layout change and play if paused
+            self.playlistModel.layoutChanged.emit()
+
+            # Check new media and play if conditions are met
+            self.playNewMedia()
+
+            # Write media to config
+            self.writeMediaToConfig()
 
     def addMediaFromConfig(self):
         # If the file exists, read in each line of the media log to a list and add the media content from each path to the playlist
