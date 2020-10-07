@@ -118,15 +118,15 @@ def create_configDir(configDir: str):
     if not os.path.isdir(configDir):
         os.makedirs(configDir)
 
-def writeToConfig(configDir: str, configFileName: str, strings: List[str]):
+def writeToConfig(configDir: str, configFilename: str, strings: List[str]):
     # Open file and write each string as a line
-    with open(os.path.join(configDir, configFileName), "w") as openFile:
+    with open(os.path.join(configDir, configFilename), "w") as openFile:
         for path in strings:
             openFile.write(path + "\n")
 
-def clearConfigFile(configDir: str, configFileName: str):
+def clearConfigFile(configDir: str, configFilename: str):
     # Open file and write it to empty
-    with open(os.path.join(configDir, configFileName), "w") as openFile:
+    with open(os.path.join(configDir, configFilename), "w") as openFile:
         openFile.write("")
 
 class Metadata:

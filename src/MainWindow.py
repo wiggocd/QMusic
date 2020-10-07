@@ -838,14 +838,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.writeMediaToConfig()
 
     def addMediaFromConfig(self):
-        # Read in each line of the media log to a list and add the media content from each path to the playlist
+        # If the file exists, read in each line of the media log to a list and add the media content from each path to the playlist
         paths: List[str] = []
-        with open(os.path.join(lib.configDir, lib.mediaFileName), "r") as mediaData:
-            paths = mediaData.read().split("\n")
+        mediaLog = os.path.join(lib.configDir, lib.mediaFileName)
 
-        for path in paths:
-            if path != "":
-                self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path)))
+        if os.path.isfile(mediaLog):
+            with open(mediaLog, "r") as mediaData:
+                paths = mediaData.read().split("\n")
+
+            for path in paths:
+                if path != "":
+                    self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path)))
 
     def writeMediaToConfig(self):
         # Add path from canonical url string of each media item in the playlist to a list and write it to the config
