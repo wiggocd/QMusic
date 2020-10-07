@@ -243,7 +243,7 @@ class MainWindow(QtWidgets.QMainWindow):
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
             # Get selected media
-            media = self.getSelectedMedia()
+            media = self.getSelectedMedia(firstIndex, maxIndex)
             
             # Set the previous selected indexes
             previousSelectedIndexes = self.playlistView.selectedIndexes()
@@ -272,7 +272,7 @@ class MainWindow(QtWidgets.QMainWindow):
             maxIndex = selectedIndexes[len(selectedIndexes) - 1].row()
 
             # Get selected media
-            media = self.getSelectedMedia()
+            media = self.getSelectedMedia(firstIndex, maxIndex)
             
             # Set the previous selected indexes
             previousSelectedIndexes = self.playlistView.selectedIndexes()
@@ -289,7 +289,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # On the playlist view selection model, call the select function with the selection model select parameter to select all of the moved selected indexes (all of the previous selected indexes shifted by 1 before)
             self.playlistViewSelectionModel.select(QtCore.QItemSelection(self.playlistModel.index(previousSelectedIndexes[0].row() - 1), self.playlistModel.index(previousSelectedIndexes[len_previousSelectedIndexes - 1].row() - 1)), QtCore.QItemSelectionModel.Select)
 
-    def getSelectedMedia(self):
+    def getSelectedMedia(self, firstIndex: int, maxIndex: int):
         # Append all selected media + 1 from playlist to a QMediaContent list
         media: List[QtMultimedia.QMediaContent] = []
         for i in range(firstIndex, maxIndex + 1):
