@@ -9,13 +9,13 @@ import os
 from playlist import PlaylistModel, PlaylistView
 import mutagen
 from typing import List
-import threading
-import time
 #from pyside_material import apply_stylesheet
 import qdarkstyle
 import sys
 import darkdetect
 import lyricsgenius
+import threading
+import time
 token = lyricsgenius.Genius("AwxNghHLIPG4Zs97LyrQLtRfDZEWTKJdF6ecdYCEmkDcA3CQiCXFZHrkBeUcQvBd")
 #keyboard: any
 #is_admin = lib.get_admin_status()
@@ -183,11 +183,7 @@ class PrefWindow(QtWidgets.QMainWindow):
             self.mainwindow.connect_update_media()
             self.mainwindow.createLayoutMain()
             self.mainwindow.createCentralWidget()
-            self.mainwindow.createShortcuts()
-
-
-            
-            
+            self.mainwindow.createShortcuts()          
         if self.lightcheck.isChecked()==True:
             themenumber = 2
             
@@ -243,8 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.initPlaylist()
         self.init_playpause()
         self.connect_update_media()
-        self.createLayoutMain()
-        self.createCentralWidget()
+
         self.createMenus()
         self.createShortcuts()
 
@@ -254,7 +249,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.isFading = False
         self.lastVolume = self.player.volume()
 
+        self.createLayoutMain()
+        self.createCentralWidget()
+
         self.show()
+
 
     def createWidgets(self,width,showart):
         # Create buttons, labels and sliders
