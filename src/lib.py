@@ -12,12 +12,26 @@ progName = "QMusic"
 textColour = "A7A7A7"
 configDir: str = None
 mediaFileName = "media.txt"
+globalStyleSheet = ""
+titleSeparator = " - "
+rootWidth = 430
+rootHeight = 320
 
 supportedFormats = [
     "wav",
     "mp3",
     "m4a",
     "flac"
+]
+
+class Style:
+    def __init__(self, name: str, styleSheet: str):
+        # Basic class: set attributes from parameters for name and style data
+        self.name = name
+        self.styleSheet = styleSheet
+
+styles = [
+    Style("Default", "")
 ]
 
 def get_execdir() -> str:
@@ -131,9 +145,11 @@ def clearConfigFile(configDir: str, configFilename: str):
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):
+        # Reset title and album attributes
         self.title = None
         self.album = None
 
+        # If the title TIT2 exists in the metadata dictionary, set the title to the text from that dictionary and likewise for TALB corresponding to album title
         if "TIT2" in mutagen_metadata:
             self.title = mutagen_metadata["TIT2"].text[0]
         if "TALB" in mutagen_metadata:

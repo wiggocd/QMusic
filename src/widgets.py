@@ -1,6 +1,6 @@
 #
-#   MainWindow.py
-#   Class extended from QMainWindow
+#   widgets.py
+#   Classes for widgets and windows
 #
 
 from PySide2 import QtWidgets, QtCore, QtGui, QtMultimedia
@@ -20,6 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #   -   init: 
     #       -   Call init on super
     #       -   Set geometry variables
+    #       -   Set app from QApplication parameter
     #       -   Set player fade rates
     #       -   Call initUI
     #   -   initUI:
@@ -37,13 +38,14 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Set variables for fade out and in rates
     #       -   Show
 
-    def __init__(self):
+    def __init__(self, app: QtWidgets.QApplication):
         super().__init__()
         self.left = 0
         self.top = 0
-        self.width = 430
-        self.height = 320
+        self.width = lib.rootWidth
+        self.height = lib.rootHeight
         self.title = lib.progName
+        self.app = app
 
         self.rate_ms_fadeOut = 200
         self.rate_ms_fadeIn = 200
@@ -455,28 +457,53 @@ class MainWindow(QtWidgets.QMainWindow):
     def createMenus(self):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
         self.mainMenu = self.menuBar()
-        fileMenu = self.mainMenu.addMenu("File")
-        playlistMenu = self.mainMenu.addMenu("Playlist")
+        fileMenu = self.mainMenu.addMenu(self.tr("File"))
+        playlistMenu = self.mainMenu.addMenu(self.tr("Playlist"))
 
-        openFileAction = QtWidgets.QAction("Open File", self)
+        closeAction = QtWidgets.QAction(self.tr("Close Window"), self)
+        closeAction.triggered.connect(self.closeWindow)
+        closeAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+W", "File|Close Window")))
+
+        preferencesAction = QtWidgets.QAction(self.tr("Preferences"), self)
+        preferencesAction.triggered.connect(self.showPreferences)
+        preferencesAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+,", "File|Preferences")))
+
+        openFileAction = QtWidgets.QAction(self.tr("Open File"), self)
         openFileAction.triggered.connect(self.open_files)
         openFileAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+O", "File|Open")))
 
-        openDirAction = QtWidgets.QAction("Open Directory", self)
+        openDirAction = QtWidgets.QAction(self.tr("Open Directory"), self)
         openDirAction.triggered.connect(self.open_directory)
         openDirAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+O", "File|Open Directory")))
 
-        playlistRemoveAction = QtWidgets.QAction("Remove", self)
+        playlistRemoveAction = QtWidgets.QAction(self.tr("Remove"), self)
         playlistRemoveAction.triggered.connect(self.removeMedia)
 
-        playlistClearAction = QtWidgets.QAction("Clear", self)
+        playlistClearAction = QtWidgets.QAction(self.tr("Clear"), self)
         playlistClearAction.triggered.connect(self.playlist_clear)
         playlistClearAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "Playlist|Clear")))
 
+        fileMenu.addAction(closeAction)
+        fileMenu.addAction(preferencesAction)
         fileMenu.addAction(openFileAction)
         fileMenu.addAction(openDirAction)
         playlistMenu.addAction(playlistRemoveAction)
         playlistMenu.addAction(playlistClearAction)
+
+    def closeWindow(self):
+        # Get the active window from the QApplication, quit the application if the active window is the player, otherwise hide and then destroy that window
+        activeWindow = self.app.activeWindow()
+
+        if activeWindow == self:
+            self.app.quit()
+        else:
+            # Note: the widget must be hidden before destruction, otherwise a segmentation fault can occur when quitting the application
+            activeWindow.hide()
+            activeWindow.destroy()
+
+    def showPreferences(self):
+        # Create instance of Preferences widget with the QApplication given as a parameter
+        self.preferencesView = Preferences(self.app)
 
     def open_files(self):
         # Set last media count for playlist media check later on
@@ -489,12 +516,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if paths:
             for path in paths:
                 if self.isSupportedFileFormat(path):
-                    self.playlist.addMedia(
-                        QtMultimedia.QMediaContent(
-                            QtCore.QUrl.fromLocalFile(path)
-                        )
-                    )
-
+                    self.addMediaFromFile(path)
+            
             # Emit playlist model layout change and play if paused
             self.playlistModel.layoutChanged.emit()
 
@@ -520,7 +543,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set directory from QFileDialog getExistingDirectory
         dirPath = QtWidgets.QFileDialog.getExistingDirectory(self, self.tr("Open Folder"), "")
 
-        # If a path was returned, get a directory listing, sort it and for every file in the list get the full path: if the format is supported, add the media to the playlist with a QMediaContent instance from the local file
+        # If a path was returned, get a directory listing, sort it and for every file in the list get the full path: if the format is supported, add the media to the playlist
         if dirPath:
             dirList = os.listdir(dirPath)
             dirList.sort()
@@ -529,11 +552,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 path = os.path.join(dirPath, fname)
                 
                 if self.isSupportedFileFormat(path):
-                    self.playlist.addMedia(
-                        QtMultimedia.QMediaContent(
-                            QtCore.QUrl.fromLocalFile(path)
-                        )
-                    )
+                    self.addMediaFromFile(path)
 
             # Emit playlist model layout change and play if paused
             self.playlistModel.layoutChanged.emit()
@@ -543,6 +562,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # Write media to config
             self.writeMediaToConfig()
+
+    def addMediaFromFile(self, path: str):
+        # Add the media to the playlist with a QMediaContent instance from the local file
+        self.playlist.addMedia(
+            QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path))
+        )
 
     def addMediaFromConfig(self):
         # If the file exists, read in each line of the media log to a list and add the media content from each path to the playlist
@@ -555,7 +580,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path in paths:
                 if path != "":
-                    self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path)))
+                    self.playlist.addMedia(
+                        QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path))
+                    )
 
     def writeMediaToConfig(self):
         # Add path from canonical url string of each media item in the playlist to a list and write it to the config
@@ -658,11 +685,56 @@ class MainWindow(QtWidgets.QMainWindow):
         self.writeMediaToConfig()
 
     def playNewMedia(self):
+        # Play if not playing and the last media count is not 0
         if self.isPlaying() == False and self.lastMediaCount == 0:
             self.play()
 
     def switchMedia(self):
+        # Get selected indexes from playlist view, if there are indexes selected, set the new current playlist index and play the new media
         selectedIndexes = self.playlistView.selectedIndexes()
         if len(selectedIndexes) > 0:
             self.playlist.setCurrentIndex(selectedIndexes[0].row())
             self.playNewMedia()
+
+#
+#   Todo: complete, comment and revise
+#
+
+class Preferences(QtWidgets.QWidget):
+    def __init__(self, app: QtWidgets.QApplication):
+        super().__init__()
+        self.left = 0
+        self.top = 0
+        self.width = 0
+        self.height = 0
+        self.title = lib.progName + lib.titleSeparator + self.tr("Preferences")
+        self.app = app
+
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        self.createWidgets()
+        self.createLayout()
+
+        self.show()
+
+    def createWidgets(self):
+        self.styleLabel = QtWidgets.QLabel(self.tr("Style"), self)
+        self.styleBox = QtWidgets.QComboBox(self)
+        
+        for style in lib.styles:
+            self.styleBox.addItem(self.tr(style.name))
+        
+        self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
+
+    def createLayout(self):
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(self.styleLabel, 0, 0)
+        layout.addWidget(self.styleBox, 0, 1)
+        self.setLayout(layout)
+
+    def styleSelectionChanged(self, index: int):
+        lib.globalStyleSheet = lib.styles[index].styleSheet
+        self.app.setStyleSheet(lib.globalStyleSheet)
