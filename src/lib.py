@@ -34,8 +34,11 @@ styles = [
     Style("Default", "")
 ]
 
-def get_execdir() -> str:
-    return os.path.dirname(os.path.realpath(__file__))
+def get_execDir() -> str:
+    path = os.path.dirname(os.path.realpath(__file__))
+    with open("/Users/cwiggins/Desktop/execdir", "w") as openFile:
+        openFile.write(path)
+    return path
 
 def get_resourcepath(resourceName: str, execpath: str) -> str:
     return os.path.join(os.path.dirname(execpath), "resources", resourceName)

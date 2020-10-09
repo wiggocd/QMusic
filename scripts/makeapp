@@ -44,6 +44,10 @@ for ((i=2; i<=$#; i++)); do
 done
 
 execPath="$1"
+if [ -z "$execPath" ]; then
+	exit
+fi
+
 appName=$(basename $execPath)
 if [ -z "$appPath" ]; then
     appPath="$execPath.app"
@@ -111,10 +115,10 @@ if [ -n "$iconPath" ]; then
     mkdir -p $resources
     cp $iconPath $resources
 else
-	iconPath=$appName.icnss
+	iconPath=$appName.icns
 fi
 
-echo $info > $appPath/Contents/info.plist
+echo $info > $appPath/Contents/Info.plist
 echo "Wrote to app: $appPath"
 
 exit

@@ -1,16 +1,19 @@
 #
 #   setup.py
-#   Program to setup, build and run different automated tasks in the environment.
+#   Program to setup, build and run different automated tasks in the environment
+#
+
+#
+#   Todo: add comments and look back over
 #
 
 from setuptools import setup, find_packages, Command
 
 import sys
-import io
 import os
 from shutil import rmtree
 
-# Package metadata
+# Package metadata, capitalised for constants
 NAME = "QMusic"
 DESCRIPTION = "A simple Python Qt application for audio playback."
 URL = ""
@@ -21,22 +24,26 @@ VERSION = "0.1.0"
 long_description = DESCRIPTION
 about: dict
 
-def get_execpath():
+def get_execDir() -> str:
+    # Return real path of the parent directory of this file
     return os.path.realpath(os.path.dirname(__file__))
 
-def get_realpath(relativePath: str, execPath: str):
-    return os.path.join(execPath, relativePath)
+def get_relativeToRealPath(relativePath: str, execDir: str) -> str:
+    # Return the path of the relative path within the executable directory
+    return os.path.join(execDir, relativePath)
 
-def get_buildname(srcfile: str):
+def get_buildName(srcfile: str) -> str:
+    # Separate the path from the parent directories, get the filename and separate the filename by the extension separator
     separated = srcfile.split(os.path.sep)
     fname = separated[len(separated) - 1]
-    dotseparated = fname.split(".")
+    extSeparated = fname.split(os.path.extsep)
     ret = ""
 
-    # Loop through array until extension is reached
-    for i in range(len(dotseparated) - 1):
-        ret += dotseparated[i]
-
+    # Loop through array appending the filename parts to the return string until the real extension is reached
+    for i in range(len(extSeparated) - 1):
+        ret += extSeparated[i]
+    
+    # Return the final filename without its extension
     return ret
 
 # Packages required for the module to be executed
@@ -49,26 +56,28 @@ EXTRAS = {
     # "feature": ["package"]
 }
 
-execpath = get_execpath()
+# Get the current executable directory, set calculated paths to relative resources
+execDir = get_execDir()
 
-PATH_REQUIREMENTS = get_realpath("requirements.txt", execpath)
-PATH_README = get_realpath("README.md", execpath)
-PATH_VERSION = get_realpath("__version__.py", execpath)
+PATH_REQUIREMENTS = get_relativeToRealPath("requirements.txt", execDir)
+PATH_README = get_relativeToRealPath("README.md", execDir)
+PATH_VERSION = get_relativeToRealPath("__version__.py", execDir)
 
 interpreter = "python"
-SRCDIR = get_realpath("src", execpath)
+SRCDIR = get_relativeToRealPath("src", execDir)
 SRCFILE = os.path.join(SRCDIR, "main.py")
-OUTDIR = get_realpath("dist", execpath)
+OUTDIR = get_relativeToRealPath("dist", execDir)
 OUTFILE = OUTDIR + os.path.sep + NAME
 OUTAPP = OUTFILE + ".app"
-BUILDNAME = get_buildname(SRCFILE)
-BUILDDIR_PYTHON = get_realpath("build", execpath)
-BUILDDIR_NUITKA = get_realpath(BUILDNAME + os.path.extsep + "build", execpath)
+BUILDNAME = get_buildName(SRCFILE)
+BUILDDIR_PYTHON = get_relativeToRealPath("build", execDir)
+BUILDDIR_NUITKA = get_relativeToRealPath(BUILDNAME + os.path.extsep + "build", execDir)
 PYINSTALLER_SPEC = BUILDNAME + os.path.extsep + "spec"
-RESOURCES = get_realpath("resources", execpath)
-SCRIPTSDIR = get_realpath("scripts", execpath)
+RESOURCES = get_relativeToRealPath("resources", execDir)
+SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
 
 def get_interpreter():
+    # If the platform is macOS (darwin), use python3, otherwise use standard python and assume it's Python 3
     if sys.platform.startswith("darwin"):
         ret = "python3"
     else:
@@ -76,16 +85,12 @@ def get_interpreter():
 
     return ret
 
-def get_here():
-    return os.path.abspath(os.path.dirname(__file__))
-
 def get_requirements():
-    here = get_here()
+    # Import requirements, add the lines split by newline from the opened file to the return list
     required = []
 
-    # Import requirements
     try:
-        with io.open(os.path.join(here, PATH_REQUIREMENTS)) as f:
+        with open(get_relativeToRealPath(PATH_REQUIREMENTS, execDir), "r") as f:
             required = f.read().split("\n")
     except FileNotFoundError:
         print("File \"%s\" not found. Exiting...", PATH_REQUIREMENTS)
@@ -93,10 +98,9 @@ def get_requirements():
     return required
 
 def get_long_description():
-
-    # Import the README.md as long description
+    # Import the README.md as long description by reading
     try:
-        with open(PATH_README) as f:
+        with open(PATH_README, "r") as f:
             long_description = f.read()
     except FileNotFoundError:
         long_description = DESCRIPTION
@@ -104,12 +108,10 @@ def get_long_description():
     return long_description
 
 def get_about():
-    here = get_here()
-
-    # Load the package"s __version__.py as a dictionary
+    # Load the package"s __version__.py as a dictionary by using the exec method with the dictionary and open file read return
     about = {}
     if not VERSION:
-        with open(os.path.join(here, PATH_VERSION)) as f:
+        with open(get_relativeToRealPath(PATH_VERSION, execDir), "r") as f:
             exec(f.read(), about)
     else:
         about["__version__"] = VERSION
@@ -126,6 +128,7 @@ def run_macos():
     os.system("open " + "\"OUTAPP\"")
 
 def clean_build():
+    # rmtree on each of the build directories
     if os.path.isdir(BUILDDIR_PYTHON):
         rmtree(BUILDDIR_PYTHON)
 
@@ -140,11 +143,12 @@ def clean_dist():
         rmtree(OUTDIR)
 
 def clean_egginfo():
-    fnames = os.listdir(get_here())
+    # For each filename from the listed contents of the executable directory, if the filename ends with the egg-info extension with separator, rmtree on that path
+    fnames = os.listdir(execDir)
     
     for fname in fnames:
         if fname.lower().endswith(os.path.extsep + "egg-info"):
-            path = os.path.join(get_here(), fname)
+            path = get_relativeToRealPath(fname, execDir)
             if os.path.isdir(path):
                 rmtree(path)
 
@@ -156,8 +160,7 @@ def clean_all():
 def makeapp():
     os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
 
-
-# Custom commands
+# Custom setup commands
 class Run(Command):
     description = "Run program"
 
@@ -239,6 +242,7 @@ about = get_about()
 required = get_requirements()
 interpreter = get_interpreter()
 
+# Call the setuptools main setup function with all metadata and commands passed as parameters
 setup(  
     name=NAME,
     version=about["__version__"],
