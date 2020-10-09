@@ -28,3 +28,6 @@ https://www.qtcentre.org/threads/23258-How-to-reorder-items-in-QListView
 
 PySide2 with Nuitka:
 https://bugreports.qt.io/plugins/servlet/mobile#issue/PYSIDE-829
+
+Genius Lyrics API:
+https://docs.genius.com

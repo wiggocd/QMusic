@@ -476,6 +476,10 @@ class MainWindow(QtWidgets.QMainWindow):
         openDirAction.triggered.connect(self.open_directory)
         openDirAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+O", "File|Open Directory")))
 
+        lyricsAction = QtWidgets.QAction(self.tr("Lyrics"), self)
+        lyricsAction.triggered.connect(self.showLyrics)
+        lyricsAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+L", "File|Lyrics")))
+
         playlistRemoveAction = QtWidgets.QAction(self.tr("Remove"), self)
         playlistRemoveAction.triggered.connect(self.removeMedia)
 
@@ -487,6 +491,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(preferencesAction)
         fileMenu.addAction(openFileAction)
         fileMenu.addAction(openDirAction)
+        fileMenu.addAction(lyricsAction)
         playlistMenu.addAction(playlistRemoveAction)
         playlistMenu.addAction(playlistClearAction)
 
@@ -502,8 +507,12 @@ class MainWindow(QtWidgets.QMainWindow):
             activeWindow.destroy()
 
     def showPreferences(self):
-        # Create instance of Preferences widget with the QApplication given as a parameter
+        # Create instance of preferences widget with the QApplication given as a parameter
         self.preferencesView = Preferences(self.app)
+
+    def showLyrics(self):
+        # Create instance of lyrics widget
+        self.lyricsView = LyricsWidget()
 
     def open_files(self):
         # Set last media count for playlist media check later on
@@ -697,7 +706,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.playNewMedia()
 
 #
-#   Todo: complete, comment and revise
+#
+#   Todo: complete, comment and look back over
+#
 #
 
 class Preferences(QtWidgets.QWidget):
@@ -738,3 +749,93 @@ class Preferences(QtWidgets.QWidget):
     def styleSelectionChanged(self, index: int):
         lib.globalStyleSheet = lib.styles[index].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
+
+class LyricsWidget(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.left = 0
+        self.top = 0
+        self.width = 300
+        self.height = 300
+        self.title = lib.progName + lib.titleSeparator + self.tr("Lyrics")
+        self.execDir = lib.get_execDir()
+
+        self.initUI()
+    
+    def initUI(self):
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+
+        self.songText = ""
+        self.artistText = ""
+        self.lastSearchedSong = None
+        self.lastSearchedArtist = None
+        
+        self.createWidgets()
+        self.createLayout()
+        lib.setLyricsToken(self.execDir)
+
+        self.show()
+
+    def createWidgets(self):
+        self.artistLabel = QtWidgets.QLabel("Artist")
+        self.songLabel = QtWidgets.QLabel("Song")
+
+        self.artistBox = QtWidgets.QLineEdit()
+        self.artistBox.textChanged.connect(self.artistBoxChanged)
+        self.artistBox.editingFinished.connect(self.search)
+
+        self.songBox = QtWidgets.QLineEdit()
+        self.songBox.textChanged.connect(self.songBoxChanged)
+        self.songBox.editingFinished.connect(self.search)
+
+        self.searchButton = QtWidgets.QPushButton("Search")
+        self.searchButton.pressed.connect(self.search)
+
+        self.scrollView = QtWidgets.QScrollArea()
+        self.outputLabel = QtWidgets.QLabel()
+        self.outputLabel.setWordWrap(True)
+        self.scrollView.setWidget(self.outputLabel)
+        self.scrollView.setWidgetResizable(True)
+
+    def createLayout(self):
+        entryGroup = QtWidgets.QGroupBox()
+        buttonGroup = QtWidgets.QGroupBox()
+        textGroup = QtWidgets.QGroupBox()
+
+        entryLayout = QtWidgets.QGridLayout()
+        entryLayout.setSpacing(10)
+        entryLayout.addWidget(self.artistLabel, 0, 0)
+        entryLayout.addWidget(self.artistBox, 0, 1)
+        entryLayout.addWidget(self.songLabel, 1, 0)
+        entryLayout.addWidget(self.songBox, 1, 1)
+
+        buttonLayout = QtWidgets.QHBoxLayout()
+        buttonLayout.addWidget(self.searchButton)
+
+        textLayout = QtWidgets.QHBoxLayout()
+        textLayout.addWidget(self.scrollView)
+
+        entryGroup.setLayout(entryLayout)
+        buttonGroup.setLayout(buttonLayout)
+        textGroup.setLayout(textLayout)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(entryGroup)
+        layout.addWidget(buttonGroup)
+        layout.addWidget(textGroup)
+    
+        self.setLayout(layout)
+    
+    def songBoxChanged(self, text: str):
+        self.songText = text
+
+    def artistBoxChanged(self, text: str):
+        self.artistText = text
+
+    def search(self):
+        if lib.lyricsObject != None and self.songText != "" and self.artistText != "" and self.lastSearchedSong != self.songText and self.lastSearchedArtist != self.artistText:
+            self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
+            self.outputLabel.setText(self.song.lyrics)
+            self.lastSearchedSong = self.songText
+            self.lastSearchedArtist = self.artistText

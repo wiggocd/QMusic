@@ -7,15 +7,19 @@ import os
 from typing import Union, List
 from PySide2 import QtGui, QtCore
 import mutagen
+import lyricsgenius
 
 progName = "QMusic"
 textColour = "A7A7A7"
 configDir: str = None
+execDir: str = None
 mediaFileName = "media.txt"
 globalStyleSheet = ""
 titleSeparator = " - "
 rootWidth = 430
 rootHeight = 320
+lyricsObject: lyricsgenius.Genius = None
+lyricsTokenFileName = "lyricsgenius_token.txt"
 
 supportedFormats = [
     "wav",
@@ -36,12 +40,11 @@ styles = [
 
 def get_execDir() -> str:
     path = os.path.dirname(os.path.realpath(__file__))
-    with open("/Users/cwiggins/Desktop/execdir", "w") as openFile:
-        openFile.write(path)
     return path
 
-def get_resourcepath(resourceName: str, execpath: str) -> str:
-    return os.path.join(os.path.dirname(execpath), "resources", resourceName)
+def get_resourcePath(resourceName: str, execDir: str) -> str:
+    # Return the parent directory to the running file directory and concatenate the resource directory to the returned string
+    return os.path.join(os.path.realpath(os.path.dirname(execDir)), "resources", resourceName)
 
 def to_hhmmss(ms: int) -> str:
     #   -   s = ms / 1000 rounded
@@ -145,6 +148,22 @@ def clearConfigFile(configDir: str, configFilename: str):
     # Open file and write it to empty
     with open(os.path.join(configDir, configFilename), "w") as openFile:
         openFile.write("")
+
+def getLyricsToken(execDir: str):
+    # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line
+    path = get_resourcePath(lyricsTokenFileName, execDir)
+    
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            return openFile.read().split("\n")[0]
+
+def setLyricsToken(execDir: str):
+    # If the token read from disk is valid, set the global lyrics object to a Genius instance from the lyrics token
+    global lyricsObject
+    token = getLyricsToken(execDir)
+    
+    if token != None and len(token) > 1:
+        lyricsObject = lyricsgenius.Genius(token)
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):

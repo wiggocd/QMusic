@@ -11,6 +11,8 @@ Python 3.5 or newer, with `python` or `python3` available in your path.
 
 `python3 setup.py install` - install the required packages
 
+There is a token for the lyrics from Genius located at `resources/lyricsgenius_token.txt`, however if the token in here is invalid, you can replace it with your own by using the Genius API from their website. The documentation can also be found in `reference.txt`.
+
 
 # Running
 
