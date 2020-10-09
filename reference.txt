@@ -1,3 +1,6 @@
+Qt5 Documentation:
+https://doc.qt.io/qt-5/index.html
+
 PyQt5 starting points:
 https://pythonspot.com/gui/
 
