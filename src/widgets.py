@@ -12,7 +12,7 @@ from typing import List
 import threading
 import time
 
-is_admin = lib.get_admin_status()
+is_admin = lib.getAdminStatus()
 if is_admin:
     import keyboard
 
@@ -88,22 +88,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timeSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.timePositionLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
         self.totalTimeLabel = QtWidgets.QLabel(lib.to_hhmmss(0))
-        self.timePositionLabel.setStyleSheet(
-            "QLabel {color: #" + lib.textColour + "}"
-        )
-        self.totalTimeLabel.setStyleSheet(
-            "QLabel {color: #" + lib.textColour + "}"
-        )
+        lib.setAltLabelStyle(self.timePositionLabel)
+        lib.setAltLabelStyle(self.totalTimeLabel)
 
         self.metadata_label = QtWidgets.QLabel()
-        self.metadata_label.setStyleSheet(
-            "QLabel {color: #" + lib.textColour + "}"
-        )
+        lib.setAltLabelStyle(self.metadata_label)
         self.metadata_label.hide()
 
         self.coverart_label = QtWidgets.QLabel()
         self.coverart_label.hide()
         self.coverart_width = 64
+
+        self.basichelp_label = ClickableLabel("""Welcome to QMusic, to get started go to File --> Open or drag and drop a song or folder into the window""")
+        self.basichelp_label.setWordWrap(True)
+        lib.setAltLabelStyle(self.basichelp_label)
+        self.basichelp_label.hide()
+        self.basichelp_label.pressed.connect(self.basichelp_label.hide)
 
         # Create playlist action buttons and connect pressed signals
         self.control_playlist_moveDown = QtWidgets.QPushButton(self.tr("Move Down"))
@@ -183,7 +183,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def restoreVolume(self):
         # Set the player volume to the last recorded volume
-        print("Restoring volume")
         self.player.setVolume(self.lastVolume)
 
     def update_duration(self, duration: int):
@@ -447,6 +446,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vLayout.addWidget(detailsGroup)
         self.vLayout.addLayout(actionsLayout)
         self.vLayout.addWidget(self.playlistView)
+        self.vLayout.addWidget(self.basichelp_label)
 
     def createCentralWidget(self):
         # Create central widget, call set central widget method and set widget layout
@@ -459,6 +459,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainMenu = self.menuBar()
         fileMenu = self.mainMenu.addMenu(self.tr("File"))
         playlistMenu = self.mainMenu.addMenu(self.tr("Playlist"))
+        helpMenu = self.mainMenu.addMenu(self.tr("Help"))
 
         closeAction = QtWidgets.QAction(self.tr("Close Window"), self)
         closeAction.triggered.connect(self.closeWindow)
@@ -487,6 +488,10 @@ class MainWindow(QtWidgets.QMainWindow):
         playlistClearAction.triggered.connect(self.playlist_clear)
         playlistClearAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "Playlist|Clear")))
 
+        basicHelpAction = QtWidgets.QAction(self.tr("Basic Help"), self)
+        basicHelpAction.triggered.connect(self.show_basichelp)
+        basicHelpAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+H", "Help|Basic Help")))
+
         fileMenu.addAction(closeAction)
         fileMenu.addAction(preferencesAction)
         fileMenu.addAction(openFileAction)
@@ -494,6 +499,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(lyricsAction)
         playlistMenu.addAction(playlistRemoveAction)
         playlistMenu.addAction(playlistClearAction)
+        helpMenu.addAction(basicHelpAction)
 
     def closeWindow(self):
         # Get the active window from the QApplication, quit the application if the active window is the player, otherwise hide and then destroy that window
@@ -513,6 +519,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def showLyrics(self):
         # Create instance of lyrics widget
         self.lyricsView = LyricsWidget()
+
+    def show_basichelp(self):
+        # Show the label
+        self.basichelp_label.show()
 
     def open_files(self):
         # Set last media count for playlist media check later on
@@ -711,6 +721,15 @@ class MainWindow(QtWidgets.QMainWindow):
 #
 #
 
+class ClickableLabel(QtWidgets.QLabel):
+    pressed = QtCore.Signal()
+
+    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
+        super().__init__(text, parent)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        self.pressed.emit()
+
 class Preferences(QtWidgets.QWidget):
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__()
@@ -758,7 +777,7 @@ class LyricsWidget(QtWidgets.QWidget):
         self.width = 300
         self.height = 300
         self.title = lib.progName + lib.titleSeparator + self.tr("Lyrics")
-        self.execDir = lib.get_execDir()
+        self.execDir = lib.get_execdir()
 
         self.initUI()
     

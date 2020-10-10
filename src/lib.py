@@ -5,7 +5,7 @@
 
 import os
 from typing import Union, List
-from PySide2 import QtGui, QtCore
+from PySide2 import QtGui, QtCore, QtWidgets
 import mutagen
 import lyricsgenius
 
@@ -38,11 +38,11 @@ styles = [
     Style("Default", "")
 ]
 
-def get_execDir() -> str:
+def get_execdir() -> str:
     path = os.path.dirname(os.path.realpath(__file__))
     return path
 
-def get_resourcePath(resourceName: str, execDir: str) -> str:
+def get_resourcepath(resourceName: str, execDir: str) -> str:
     # Return the parent directory to the running file directory and concatenate the resource directory to the returned string
     return os.path.join(os.path.realpath(os.path.dirname(execDir)), "resources", resourceName)
 
@@ -93,7 +93,7 @@ def urlStringToPath(urlString: str) -> str:
 #   Revise
 #
 
-def get_admin_status() -> bool:
+def getAdminStatus() -> bool:
     #   Reminders
     #   - import ctypes
     #   - if os.getuid == x ...
@@ -108,7 +108,7 @@ def get_admin_status() -> bool:
     return is_admin
 
 #
-#   Revise
+#   Todo: comment and revise
 #
 
 def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, None]:
@@ -124,10 +124,6 @@ def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, No
         return pixmap
     else:
         return None
-
-#
-#   Revise
-#
 
 def get_configDir(progName: str) -> str:
     # Use expanduser with nested config directory
@@ -151,7 +147,7 @@ def clearConfigFile(configDir: str, configFilename: str):
 
 def getLyricsToken(execDir: str):
     # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line
-    path = get_resourcePath(lyricsTokenFileName, execDir)
+    path = get_resourcepath(lyricsTokenFileName, execDir)
     
     if os.path.isfile(path):
         with open(path, "r") as openFile:
@@ -164,6 +160,14 @@ def setLyricsToken(execDir: str):
     
     if token != None and len(token) > 1:
         lyricsObject = lyricsgenius.Genius(token)
+
+def setAltLabelStyle(label: QtWidgets.QLabel):
+    # Set the alternative properties on the label's stylesheet
+    label.setStyleSheet(
+        """
+        QLabel {color: #""" + textColour + """}
+        """
+    )
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):

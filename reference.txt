@@ -34,3 +34,6 @@ https://bugreports.qt.io/plugins/servlet/mobile#issue/PYSIDE-829
 
 Genius Lyrics API:
 https://docs.genius.com
+
+PyQt5 Reorderable List Model:
+https://github.com/d1vanov/PyQt5-reorderable-list-model
