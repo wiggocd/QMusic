@@ -211,7 +211,7 @@ def createLink():
     with os.open(linkScriptPath, "w") as openFile:
         openFile.write(generateLinkScript())
 
-    os.chmod(linkScriptPath, 777)
+    os.chmod(linkScriptPath, 751)
 
 def removeLink():
     sudo()
