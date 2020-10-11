@@ -640,7 +640,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showPreferences(self):
         # Create instance of preferences widget with the QApplication given as a parameter
-        self.preferencesView = Preferences(self.app)
+        self.preferencesView = Preferences(self.app, self)
 
     def showLyrics(self):
         # Create instance of lyrics widget
@@ -843,7 +843,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 #
 #
-#   Todo: complete, comment and look back over
+#   Revise
 #
 #
 
@@ -860,18 +860,25 @@ class ClickableLabel(QtWidgets.QLabel):
         self.pressed.emit()
 
 class Preferences(QtWidgets.QWidget):
-    #   -   Init:
-    #       -   Set geometry variables, title and application from parameter
+    #   -   init:
+    #       -   Set geometry variables including from parent widget if a parent was passed, title and application from parameter
     #       -   Call initUI
     #   -   initUI:
     #       -   Set geometry and window title
     #       -   Create widgets and layout
     #       -   Show
 
-    def __init__(self, app: QtWidgets.QApplication):
+    def __init__(self, app: QtWidgets.QApplication, parent: QtWidgets.QWidget = None):
         super().__init__()
-        self.left = 0
-        self.top = 0
+
+        if parent != None:
+            parentGeometry = parent.geometry()
+            self.left = parentGeometry.left()
+            self.top = parentGeometry.top()
+        else:
+            self.left = 0
+            self.top = 0
+
         self.width = 0
         self.height = 0
         self.title = lib.progName + lib.titleSeparator + self.tr("Preferences")
@@ -919,19 +926,36 @@ class Preferences(QtWidgets.QWidget):
         lib.updateMainConfig("style", index)
 
 class LyricsWidget(QtWidgets.QWidget):
-    #   Init:
-    #       -   Set geometry and title variables, call initUI
-    #   initUI:
+    #   -   init:
+    #       -   Set geometry variables including from the parent window if no geometry was previously recorded in the config for the lyrics widget, otherwise set the previous geometry, as well as title / track detail variables
+    #       -   Call initUI
+    #   -   initUI:
     #       -   Set geometry, title and default text
+    #       -   Save the geometry to the config if it has not been previously
     #       -   Create the widgets and layout, along with setting the lyrics token from the executable directory
     #       -   Show
 
-    def __init__(self):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__()
-        self.left = 0
-        self.top = 0
-        self.width = 300
-        self.height = 300
+
+        if lib.config.__contains__("lyricsGeometry"):
+            geometry = lib.config["lyricsGeometry"]
+            self.left = geometry["left"]
+            self.top = geometry["top"]
+            self.width = geometry["width"]
+            self.height = geometry["height"]
+        elif parent != None:
+            parentGeometry = parent.geometry()
+            self.left = parentGeometry.left()
+            self.top = parentGeometry.top()
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+        else:
+            self.left = lib.defaultLeft
+            self.top = lib.defaultTop
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+
         self.title = lib.progName + lib.titleSeparator + self.tr("Lyrics")
 
         self.initUI()
@@ -939,6 +963,13 @@ class LyricsWidget(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
+
+        if not lib.config.__contains__("lyricsGeometry"):
+            lib.config["lyricsGeometry"] = {}
+            lib.config["lyricsGeometry"]["left"] = self.left
+            lib.config["lyricsGeometry"]["top"] = self.top
+            lib.config["lyricsGeometry"]["width"] = self.width
+            lib.config["lyricsGeometry"]["height"] = self.height
 
         self.songText = ""
         self.artistText = ""
@@ -950,6 +981,20 @@ class LyricsWidget(QtWidgets.QWidget):
         lib.setLyricsToken(lib.execDir)
 
         self.show()
+
+    def moveEvent(self, event: QtGui.QMoveEvent):
+        # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["lyricsGeometry"]["left"] = self.geometry().left()
+        lib.config["lyricsGeometry"]["top"] = self.geometry().top()
+
+        lib.writeToMainConfigJSON(lib.config)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        # Set the width and height keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["lyricsGeometry"]["width"] = self.geometry().width()
+        lib.config["lyricsGeometry"]["height"] = self.geometry().height()
+
+        lib.writeToMainConfigJSON(lib.config)
 
     def createWidgets(self):
         # Create labels and Line Edit boxes for song details entry, create the search button ad scroll view with the output label and word wrap enabled
