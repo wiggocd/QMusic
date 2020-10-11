@@ -195,11 +195,12 @@ def generateLinkScript():
 #
 
 def sudo():
-    # Use subprocess.call with the path to the sudo and id executables until the return is 0 and we have superuser
+    # Use subprocess.call with shlex.split of "sudo id -nu" until the return is 0 and we have superuser
     sudo = 1
     attempts = 0
+
     while sudo != 0 and attempts < 3:
-        subprocess.call(["/usr/bin/sudo", "/usr/bin/id"]) != 0
+        subprocess.call(shlex.split("sudo id -nu"), stdout=None) != 0
         attempts += 1
 
     return sudo
@@ -211,7 +212,7 @@ def createLink():
     with open(linkScriptPath, "w") as openFile:
         openFile.write(generateLinkScript())
 
-    os.chmod(linkScriptPath, 751)
+    os.chmod(linkScriptPath, 755)
 
 def removeLink():
     sudo()
@@ -291,10 +292,11 @@ class UnixLink(Command):
         ...
 
     def run(self):
-        if self.remove:
-            removeLink()
-        else:
-            createLink()
+        if not win32:
+            if self.remove:
+                removeLink()
+            else:
+                createLink()
 
 class Compile(Command):
     description = "Compile executable"
@@ -336,14 +338,15 @@ OPTIONS = {
     }
 }
 
-# If Mac, use py2app in the setup with app, data files and options provided, otherwise if Windows, use py2exe with the app passed
+# OS specific functions. For all Unix-like systems, import shlex for sudo. If Mac, use py2app in the setup with app, data files and options provided, otherwise if Windows, use py2exe with the app passed
 if darwin:
+    import shlex
     setup_requires=["py2app"]
 elif win32:
     setup_requires=["py2exe"]
 else:
     # Other/Unix
-    ...
+    import shlex
 
 #   Call the setuptools main setup function with all metadata and commands passed as parameters:
 #       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
