@@ -184,7 +184,7 @@ def makeapp():
     # Run the concatenated path to the makeapp script and pass the executable and output path parameters
     os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
 
-def generateLinkScript():
+def generateLaunchScript():
     return """
     #!/bin/sh
     python """ + os.path.join(execDir, mainScriptRelativePath) + """
@@ -195,18 +195,21 @@ def generateLinkScript():
 #
 
 def sudo():
+    # Not working, for now we will just request the user to run sudo with the script for operations that require it
+    
     # Use subprocess.call with shlex.split of "sudo id -nu" until the return is 0 and we have superuser
+
     sudo = 1
     attempts = 0
 
     while sudo != 0 and attempts < 3:
-        subprocess.call(shlex.split("sudo id -nu"), stdout=None) != 0
+        subprocess.call(shlex.split("sudo id -nu"), stdout=os.devnull) != 0
         attempts += 1
 
     return sudo
 
-def createLink():
-    sudo()
+def createLaunchScript():
+    # sudo()
 
     # Open the path to the script for writing at write the link script, make the file executable with chmod
     with open(linkScriptPath, "w") as openFile:
@@ -214,8 +217,8 @@ def createLink():
 
     os.chmod(linkScriptPath, 755)
 
-def removeLink():
-    sudo()
+def removeLaunchScript():
+    # sudo()
 
     # If the link script exists, remove it
     if os.path.isfile(linkScriptPath):
@@ -276,12 +279,12 @@ class Clean(Command):
         else:
             clean_all()
 
-class UnixLink(Command):
-    description = "Create or remove a script to link to your local copy of the application in /usr/bin"
+class InstallUnix(Command):
+    description = "Create or remove a script in /usr/bin as a link to launch your local copy of the application"
 
     user_options = [
-        ("create", "c", "Create a script to link to your local copy of the application in /usr/bin"),
-        ("remove", "r", "Remove the script to link")
+        ("create", "c", "Create a script in /usr/bin as a link to launch your local copy of the application"),
+        ("remove", "r", "Remove the launcher script")
     ]
 
     def initialize_options(self):
@@ -294,9 +297,9 @@ class UnixLink(Command):
     def run(self):
         if not win32:
             if self.remove:
-                removeLink()
+                removeLaunchScript()
             else:
-                createLink()
+                createLaunchScript()
 
 class Compile(Command):
     description = "Compile executable"
@@ -377,7 +380,7 @@ if darwin or win32:
         cmdclass={
             "run": Run,
             "clean": Clean,
-            "unixlink": UnixLink,
+            "install_unix": InstallUnix,
             "compile": Compile,
             "makeapp": MakeApp,
         },
