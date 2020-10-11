@@ -30,9 +30,9 @@ There is a token for the lyrics from Genius located at `resources/lyricsgenius_t
 
 `python3 setup.py py2app -A` - build a macOS app package
 
-`python3 setup.py py2exe` - build a Windows executable
+`python3 setup.py compile` - build a Windows executable
 
-`sudo python3 setup.py unixlink` - write a script to /usr/local/bin on Unix-like systems from which QMusic can be run
+`sudo python3 setup.py install_unix` - write a script to /usr/local/bin on Unix-like systems from which QMusic can be run
 
 For more info, run `python3 setup.py --help`
 

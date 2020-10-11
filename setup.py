@@ -25,7 +25,8 @@ VERSION = "0.1.0"
 long_description = DESCRIPTION
 about: dict
 resourcesPath = "resources"
-iconPath = os.path.join(resourcesPath, "icons", "icon_default.icns")
+ICON_ICNS = os.path.join(resourcesPath, "icons", "icon_default.icns")
+ICON_ICO = os.path.join(resourcesPath, "icons", "icon_default.ico")
 
 darwin = False
 win32 = False
@@ -84,11 +85,11 @@ PATH_VERSION = get_relativeToRealPath("__version__.py", execDir)
 
 interpreter = "python"
 SRCDIRNAME = get_relativeToRealPath("src", execDir)
-mainScriptRelativePath = os.path.join(SRCDIRNAME, "main.py")
+mainScript = os.path.join(SRCDIRNAME, "main.py")
 OUTDIR = get_relativeToRealPath("dist", execDir)
 OUTFILE = OUTDIR + os.path.sep + NAME
 OUTAPP = OUTFILE + ".app"
-BUILDNAME = get_buildName(mainScriptRelativePath)
+BUILDNAME = get_buildName(mainScript)
 BUILDDIR_PYTHON = get_relativeToRealPath("build", execDir)
 BUILDDIR_NUITKA = get_relativeToRealPath(BUILDNAME + os.path.extsep + "build", execDir)
 PYINSTALLER_SPEC = BUILDNAME + os.path.extsep + "spec"
@@ -96,6 +97,9 @@ RESOURCES = get_relativeToRealPath("resources", execDir)
 SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
 launchScriptPath = "/usr/local/bin/qmusic"
 launchScriptPermissions = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
+
+OPTIONS_NUITKA = "--follow-imports --standalone"
+OPTIONS_PYINSTALLER = "--onedir --noconsole --name "+NAME+" --icon "+ICON_ICO
 
 def get_interpreter():
     # If the platform is macOS (darwin), use python3, otherwise use standard python and assume it's Python 3
@@ -141,7 +145,7 @@ def get_about():
 
 def run_py():
     # Run the python file with the interpreter using system
-    os.system(interpreter + " \"" + mainScriptRelativePath + "\"")
+    os.system(interpreter + " \"" + mainScript + "\"")
 
 def run_exec():
     # Run the executable
@@ -189,7 +193,7 @@ def makeapp():
 def generateLaunchScript():
     return """
     #!/bin/sh
-    python """ + os.path.join(execDir, mainScriptRelativePath) + """
+    python """ + os.path.join(execDir, mainScript) + """
     """
 
 #
@@ -307,20 +311,21 @@ class Compile(Command):
     description = "Compile executable"
 
     user_options = [
-        ("macos", "m", "Build executable and create macOS application package")
+        ("macApp", "m", "Build executable and create macOS application package")
     ]
 
     def initialize_options(self):
-        self.macos = None
+        self.macApp = None
 
     def finalize_options(self):
         ...
 
     def run(self):
-        # os.system("nuitka3 "+mainScriptRelativePath+" -o "+mainScriptRelativePath+" --follow-imports --standalone")
-        # os.system("pyinstaller "+mainScriptRelativePath+" --onedir")
+        # os.system("nuitka3 \""+mainScript+"\" -o \""+OUTFILE+"\" "+OPTIONS_NUITKA)
+        if win32:
+            os.system("pyinstaller \""+mainScript+"\" "+OPTIONS_PYINSTALLER)
         
-        if self.macos:
+        if self.macApp:
             makeapp()
 
 class MakeApp(Command):
@@ -335,20 +340,20 @@ required = get_requirements()
 interpreter = get_interpreter()
 
 # py2app/py2exe
-APP = [mainScriptRelativePath]
+APP = [mainScript]
 DATA_FILES = []
 OPTIONS = {
     "py2app": {
-        "iconfile": iconPath
+        "iconfile": ICON_ICNS
     }
 }
 
 # OS specific functions. For all Unix-like systems, import shlex for sudo. If Mac, use py2app in the setup with app, data files and options provided, otherwise if Windows, use py2exe with the app passed
 if darwin:
     import shlex
-    setup_requires=["py2app"]
+    required.append("py2app")
 elif win32:
-    setup_requires=["py2exe"]
+    required.append("pyinstaller")
 else:
     # Other/Unix
     import shlex
