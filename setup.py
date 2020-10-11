@@ -31,7 +31,7 @@ darwin = False
 win32 = False
 unix_other = False
 
-def setOS():
+def getOS():
     # Use sys.platform to derive OS details
     global darwin, win32, unix_other
     if sys.platform.startswith("darwin"):
@@ -41,7 +41,7 @@ def setOS():
     else:
         unix_other = True
 
-setOS()
+getOS()
 
 def get_execDir() -> str:
     # Return real path of the parent directory of this file
@@ -355,7 +355,7 @@ else:
 
 #   Call the setuptools main setup function with all metadata and commands passed as parameters:
 #       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
-if darwin or win32:
+if darwin:
     setup(  
         name=NAME,
         version=about["__version__"],
@@ -387,6 +387,40 @@ if darwin or win32:
             "makeapp": MakeApp,
         },
         app=APP,
+        data_files=DATA_FILES,
+        options=OPTIONS
+    )
+elif win32:
+    setup(  
+        name=NAME,
+        version=about["__version__"],
+        description=DESCRIPTION,
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        author=AUTHOR,
+        author_email=EMAIL,
+        python_requires=REQUIRES_PYTHON,
+        url=URL,
+        packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+        install_requires=required,
+        extras_require=EXTRAS,
+        include_package_data=True,
+        license="ISC",
+        classifiers=[
+            # Trove classifiers
+            # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+            "License :: OSI Approved :: ISC License (ISCL)",
+            "Programming Language :: Python",
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.5"
+        ],
+        cmdclass={
+            "run": Run,
+            "clean": Clean,
+            "install_unix": InstallUnix,
+            "compile": Compile,
+            "makeapp": MakeApp,
+        },
         data_files=DATA_FILES,
         options=OPTIONS
     )
