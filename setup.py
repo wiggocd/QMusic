@@ -415,7 +415,7 @@ else:
         cmdclass={
             "run": Run,
             "clean": Clean,
-            "unixlink": UnixLink,
+            "install_unix": InstallUnix,
             "compile": Compile,
             "makeapp": MakeApp,
         }
