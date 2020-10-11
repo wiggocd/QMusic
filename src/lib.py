@@ -248,9 +248,12 @@ class Metadata:
         # Reset title and album attributes
         self.title = None
         self.album = None
+        self.artist = None
 
         # If the title TIT2 exists in the metadata dictionary, set the title to the text from that dictionary and likewise for TALB corresponding to album title
         if "TIT2" in mutagen_metadata:
             self.title = mutagen_metadata["TIT2"].text[0]
         if "TALB" in mutagen_metadata:
             self.album = mutagen_metadata["TALB"].text[0]
+        if "TPE2" in mutagen_metadata:
+            self.artist = mutagen_metadata["TPE2"].text[0]

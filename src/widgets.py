@@ -173,6 +173,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_remove.pressed.connect(self.removeMedia)
         self.control_playlist_clear.pressed.connect(self.playlist_clear)
 
+        self.lyricsView = None
+
     def initPlayer(self):
         # Create QMediaPlayer and connect to time and volume sliders value changed members, connect player position/duration changed to update position and duration methods
         self.player = QtMultimedia.QMediaPlayer()
@@ -527,6 +529,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Called on media change, update track metadata and cover art
         self.update_metadata(media)
         self.update_coverart(media)
+
+        # If the lyrics view has been created, emit the track changed signal
+        if self.lyricsView != None:
+            self.lyricsView.trackChanged.emit()
 
     def connect_update_media(self):
         # Connect cover art update method to playlist current media changed signal
@@ -928,17 +934,24 @@ class Preferences(QtWidgets.QWidget):
         lib.updateMainConfig("style", index)
 
 class LyricsWidget(QtWidgets.QWidget):
+    #   -   Signal trackChanged
     #   -   init:
+    #       -   Set parent propery
     #       -   Set geometry variables including from the parent window if no geometry was previously recorded in the config for the lyrics widget, otherwise set the previous geometry, as well as title / track detail variables
     #       -   Call initUI
     #   -   initUI:
     #       -   Set geometry, title and default text
     #       -   Save the geometry to the config if it has not been previously
     #       -   Create the widgets and layout, along with setting the lyrics token from the executable directory
+    #       -   Connect the track changed signal to the search from metadata function, call serach from metadata if the parent player has media
     #       -   Show
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    trackChanged = QtCore.Signal()
+
+    def __init__(self, parent: MainWindow = None):
         super().__init__()
+
+        self.parent = parent
 
         if lib.config.__contains__("geometry") and lib.config["geometry"].__contains__("lyrics"):
             geometry = lib.config["geometry"]["lyrics"]
@@ -947,7 +960,7 @@ class LyricsWidget(QtWidgets.QWidget):
             self.width = geometry["width"]
             self.height = geometry["height"]
         elif parent != None:
-            parentGeometry = parent.geometry()
+            parentGeometry = self.parent.geometry()
             self.left = parentGeometry.left()
             self.top = parentGeometry.top()
             self.width = lib.lyrics_defaultWidth
@@ -984,6 +997,10 @@ class LyricsWidget(QtWidgets.QWidget):
         self.createLayout()
         lib.setLyricsToken(lib.execDir)
 
+        self.trackChanged.connect(self.loadAndSearchFromMetadata)
+        if not self.parent.player.media().isNull():
+            self.loadAndSearchFromMetadata()
+
         self.show()
 
     def moveEvent(self, event: QtGui.QMoveEvent):
@@ -1006,11 +1023,11 @@ class LyricsWidget(QtWidgets.QWidget):
         self.songLabel = QtWidgets.QLabel("Song")
 
         self.artistBox = QtWidgets.QLineEdit()
-        self.artistBox.textChanged.connect(self.artistBoxChanged)
+        self.artistBox.textChanged.connect(self.setArtistText)
         self.artistBox.editingFinished.connect(self.search)
 
         self.songBox = QtWidgets.QLineEdit()
-        self.songBox.textChanged.connect(self.songBoxChanged)
+        self.songBox.textChanged.connect(self.setSongText)
         self.songBox.editingFinished.connect(self.search)
 
         self.searchButton = QtWidgets.QPushButton("Search")
@@ -1051,19 +1068,35 @@ class LyricsWidget(QtWidgets.QWidget):
         layout.addWidget(textGroup)
     
         self.setLayout(layout)
+
+    def setArtistText(self, text: str):
+        # Set the artist text
+        self.artistText = text
     
-    def songBoxChanged(self, text: str):
+    def setSongText(self, text: str):
         # Set the song text
         self.songText = text
 
-    def artistBoxChanged(self, text: str):
-        # Set the artist text
-        self.artistText = text
+    def loadAndSearchFromMetadata(self):
+        metadata = self.parent.metadata
+
+        self.artistBox.setPlaceholderText(metadata.artist)
+        self.songBox.setPlaceholderText(metadata.title)
+
+        self.setArtistText(metadata.artist)
+        self.setSongText(metadata.title)
+
+        self.search()
 
     def search(self):
-        # If the lyrics object exists, the song and artist names are set and the song details are different to before, set the song from the lyrics object, set the output label text from the song lyrics property, set the last searched song and artist
-        if lib.lyricsObject != None and self.songText != "" and self.artistText != "" and self.lastSearchedSong != self.songText and self.lastSearchedArtist != self.artistText:
-            self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
-            self.outputLabel.setText(self.song.lyrics)
-            self.lastSearchedSong = self.songText
-            self.lastSearchedArtist = self.artistText
+        # If the lyrics object exists, the song and artist names are set and one of the song details has changed, run the second stage search function on a new thread using the threading library, the target specified and the start method
+        if lib.lyricsObject != None and self.songText != "" and self.artistText != "" and self.lastSearchedArtist != self.artistText or self.lastSearchedSong != self.songText:
+            searchThread = threading.Thread(target=self._search)
+            searchThread.start()
+
+    def _search(self):
+        # Set the song from the lyrics object, set the output label text from the song lyrics property, set the last searched song and artist
+        self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
+        self.outputLabel.setText(self.song.lyrics)
+        self.lastSearchedSong = self.songText
+        self.lastSearchedArtist = self.artistText
