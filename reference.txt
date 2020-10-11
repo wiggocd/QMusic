@@ -37,3 +37,9 @@ https://docs.genius.com
 
 PyQt5 Reorderable List Model:
 https://github.com/d1vanov/PyQt5-reorderable-list-model
+
+py2app Docs:
+https://py2app.readthedocs.io/en/latest/index.html
+
+py2exe Docs:
+http://www.py2exe.org

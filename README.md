@@ -28,12 +28,19 @@ There is a token for the lyrics from Genius located at `resources/lyricsgenius_t
 
 `python3 setup.py clean` - clean the build environment
 
-For more info, use `python3 setup.py --help`
+`python3 setup.py py2app -A` - build a macOS app package
 
-For more commands, use `python3 setup.py --help-commands`
+`python3 setup.py py2exe` - build a Windows executable
 
+`python3 setup.py unix-link` - write a script to /usr/local/bin on Unix-like systems from which QMusic can be run
 
-**Please note, compilation is currently broken due to Nuitka not supporting PySide2.**
+For more info, run `python3 setup.py --help`
+
+For more commands, run `python3 setup.py --help-commands`
+
+_______________________
+
+**Please note, compilation is currently broken due to Nuitka not supporting PySide2/Shiboken2.**
 
 ~~`python3 setup.py compile` - transpile the Python program to C and compile it to binary using Nuitka~~
 

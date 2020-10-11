@@ -1,6 +1,6 @@
 #
 #   setup.py
-#   Program to setup, build and run different automated tasks in the environment
+#   Program to setup, build and run different automated tasks in the environment with setuptools/distutils
 #
 
 #
@@ -8,10 +8,10 @@
 #
 
 from setuptools import setup, find_packages, Command
-
 import sys
 import os
 from shutil import rmtree
+import subprocess
 
 # Package metadata, capitalised for constants
 NAME = "QMusic"
@@ -23,6 +23,24 @@ REQUIRES_PYTHON = ">=3.5.0"
 VERSION = "0.1.0"
 long_description = DESCRIPTION
 about: dict
+resourcesPath = "resources"
+iconPath = os.path.join(resourcesPath, "icons", "icon_default.icns")
+
+darwin = False
+win32 = False
+unix_other = False
+
+def setOS():
+    # Use sys.platform to derive OS details
+    global darwin, win32, unix_other
+    if sys.platform.startswith("darwin"):
+        darwin = True
+    elif sys.platform.startswith("win32"):
+        win32 = True
+    else:
+        unix_other = True
+
+setOS()
 
 def get_execDir() -> str:
     # Return real path of the parent directory of this file
@@ -64,21 +82,22 @@ PATH_README = get_relativeToRealPath("README.md", execDir)
 PATH_VERSION = get_relativeToRealPath("__version__.py", execDir)
 
 interpreter = "python"
-SRCDIR = get_relativeToRealPath("src", execDir)
-SRCFILE = os.path.join(SRCDIR, "main.py")
+SRCDIRNAME = get_relativeToRealPath("src", execDir)
+mainScriptRelativePath = os.path.join(SRCDIRNAME, "main.py")
 OUTDIR = get_relativeToRealPath("dist", execDir)
 OUTFILE = OUTDIR + os.path.sep + NAME
 OUTAPP = OUTFILE + ".app"
-BUILDNAME = get_buildName(SRCFILE)
+BUILDNAME = get_buildName(mainScriptRelativePath)
 BUILDDIR_PYTHON = get_relativeToRealPath("build", execDir)
 BUILDDIR_NUITKA = get_relativeToRealPath(BUILDNAME + os.path.extsep + "build", execDir)
 PYINSTALLER_SPEC = BUILDNAME + os.path.extsep + "spec"
 RESOURCES = get_relativeToRealPath("resources", execDir)
 SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
+linkScriptPath = "/usr/local/bin/qmusic"
 
 def get_interpreter():
     # If the platform is macOS (darwin), use python3, otherwise use standard python and assume it's Python 3
-    if sys.platform.startswith("darwin"):
+    if darwin:
         ret = "python3"
     else:
         ret = "python"
@@ -120,7 +139,7 @@ def get_about():
 
 def run_py():
     # Run the python file with the interpreter using system
-    os.system(interpreter + " \"" + SRCFILE + "\"")
+    os.system(interpreter + " \"" + mainScriptRelativePath + "\"")
 
 def run_exec():
     # Run the executable
@@ -165,12 +184,48 @@ def makeapp():
     # Run the concatenated path to the makeapp script and pass the executable and output path parameters
     os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
 
+def generateLinkScript():
+    return """
+    #!/bin/sh
+    python """ + os.path.join(execDir, mainScriptRelativePath) + """
+    """
+
+#
+#   Revise
+#
+
+def sudo():
+    # Use subprocess.call with the path to the sudo and id executables until the return is 0 and we have superuser
+    sudo = 1
+    attempts = 0
+    while sudo != 0 and attempts < 3:
+        subprocess.call(["/usr/bin/sudo", "/usr/bin/id"]) != 0
+        attempts += 1
+
+    return sudo
+
+def createLink():
+    sudo()
+
+    # Open the path to the script for writing at write the link script, make the file executable with chmod
+    with os.open(linkScriptPath, "w") as openFile:
+        openFile.write(generateLinkScript())
+
+    os.chmod(linkScriptPath, 777)
+
+def removeLink():
+    sudo()
+
+    # If the link script exists, remove it
+    if os.path.isfile(linkScriptPath):
+        os.remove(linkScriptPath)
+
 #   Custom setup commands
 #   For each extension of the Command class from setuptools, provide:
 #       -   description
 #       -   user_options list of tuples with names, shortcuts and descriptions
 #       -   initialize_options and finalize_options
-#       -   the main function with the name of the command option, running the methods required
+#       -   the main function: run, running the required functions
 
 class Run(Command):
     description = "Run program"
@@ -187,7 +242,7 @@ class Run(Command):
         self.macos = None
 
     def finalize_options(self):
-        None
+        ...
 
     def run(self):
         if self.exec:
@@ -196,27 +251,6 @@ class Run(Command):
             run_macos()
         else:
             run_py()
-
-class Compile(Command):
-    description = "Compile executable"
-
-    user_options = [
-        ("macos", "m", "Build executable and create macOS application package")
-    ]
-
-    def initialize_options(self):
-        self.macos = None
-
-    def finalize_options(self):
-        None
-
-    def run(self):
-        # os.system("nuitka3 "+SRCFILE+" -o "+OUTFILE+" --nofollow-imports")
-        os.system("nuitka3 "+SRCFILE+" --follow-imports --standalone")
-        # os.system("pyinstaller "+SRCFILE+" --onedir")
-        
-        if self.macos:
-            makeapp()
 
 class Clean(Command):
     description = "Clean the build environment"
@@ -241,6 +275,47 @@ class Clean(Command):
         else:
             clean_all()
 
+class UnixLink(Command):
+    description = "Create or remove a script to link to your local copy of the application in /usr/bin"
+
+    user_options = [
+        ("create", "c", "Create a script to link to your local copy of the application in /usr/bin"),
+        ("remove", "r", "Remove the script to link")
+    ]
+
+    def initialize_options(self):
+        self.create = None
+        self.remove = None
+
+    def finalize_options(self):
+        ...
+
+    def run(self):
+        if self.remove:
+            removeLink()
+        else:
+            createLink()
+
+class Compile(Command):
+    description = "Compile executable"
+
+    user_options = [
+        ("macos", "m", "Build executable and create macOS application package")
+    ]
+
+    def initialize_options(self):
+        self.macos = None
+
+    def finalize_options(self):
+        ...
+
+    def run(self):
+        # os.system("nuitka3 "+mainScriptRelativePath+" -o "+mainScriptRelativePath+" --follow-imports --standalone")
+        # os.system("pyinstaller "+mainScriptRelativePath+" --onedir")
+        
+        if self.macos:
+            makeapp()
+
 class MakeApp(Command):
     description = "Create macOS application package"
 
@@ -251,6 +326,24 @@ long_description = get_long_description()
 about = get_about()
 required = get_requirements()
 interpreter = get_interpreter()
+
+# py2app/py2exe
+APP = [mainScriptRelativePath]
+DATA_FILES = []
+OPTIONS = {
+    "py2app": {
+        "iconfile": iconPath
+    }
+}
+
+# If Mac, use py2app in the setup with app, data files and options provided, otherwise if Windows, use py2exe with the app passed
+if darwin:
+    setup_requires=["py2app"]
+elif win32:
+    setup_requires=["py2exe"]
+else:
+    # Other/Unix
+    ...
 
 #   Call the setuptools main setup function with all metadata and commands passed as parameters:
 #       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
@@ -279,8 +372,12 @@ setup(
     ],
     cmdclass={
         "run": Run,
+        "clean": Clean,
+        "unix-link": UnixLink,
         "compile": Compile,
         "makeapp": MakeApp,
-        "clean": Clean
-    }
+    },
+    app=APP,
+    data_files=DATA_FILES,
+    options=OPTIONS
 )
