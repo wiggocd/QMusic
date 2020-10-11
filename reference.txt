@@ -43,3 +43,6 @@ https://py2app.readthedocs.io/en/latest/index.html
 
 py2exe Docs:
 http://www.py2exe.org
+
+os.chmod:
+https://www.tutorialspoint.com/python/os_chmod.htm

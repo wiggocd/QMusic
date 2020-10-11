@@ -12,6 +12,7 @@ import sys
 import os
 from shutil import rmtree
 import subprocess
+import stat
 
 # Package metadata, capitalised for constants
 NAME = "QMusic"
@@ -94,6 +95,7 @@ PYINSTALLER_SPEC = BUILDNAME + os.path.extsep + "spec"
 RESOURCES = get_relativeToRealPath("resources", execDir)
 SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
 launchScriptPath = "/usr/local/bin/qmusic"
+launchScriptPermissions = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
 
 def get_interpreter():
     # If the platform is macOS (darwin), use python3, otherwise use standard python and assume it's Python 3
@@ -215,7 +217,7 @@ def createLaunchScript():
     with open(launchScriptPath, "w") as openFile:
         openFile.write(generateLaunchScript())
 
-    os.chmod(launchScriptPath, 755)
+    os.chmod(launchScriptPath, launchScriptPermissions)
 
 def removeLaunchScript():
     # sudo()
