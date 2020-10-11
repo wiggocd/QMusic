@@ -514,6 +514,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.coverart_label.hide()
 
+        # If the player is in the minimal layout mode, re-hide the coverart label
+        if self.currentLayout == 1:
+            self.coverart_label.hide()
+
     def update_media(self, media: QtMultimedia.QMediaContent):
         # If playing, update the play/pause button to the playing state, otherwise set its properties to the paused state
         self.updatePlayingState()
