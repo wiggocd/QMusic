@@ -139,21 +139,20 @@ class MainWindow(QtWidgets.QMainWindow):
         lib.updateMainConfig("volume", volume)
 
     def setPosition(self, position: int):
-        if self.player:
-            # Get player position and if the new slider position has changed, set the player position
-            player_position = self.player.position()
-            if position > player_position + 1 or position < player_position - 1:
-                self.player.setPosition(position)
+        # Get player position and if the new slider position has changed, set the player position
+        player_position = self.player.position()
+        if position > player_position + 1 or position < player_position - 1:
+            self.player.setPosition(position)
 
-            # If position is near the end, fade out
-            duration = self.player.duration()
-            if not self.isTransitioning and position > duration - 1000:
-                self.isTransitioning = True
-                self.fadeOut()
+        # If position is near the end, fade out
+        duration = self.player.duration()
+        if not self.isTransitioning and position > duration - 1000:
+            self.isTransitioning = True
+            self.fadeOut()
 
-            # If transitioning and the new track has started, reset the transitioning state and restore volume
-            if self.isTransitioning and not self.isFading and position < duration - 1000:
-                self.fadeIn()
+        # If transitioning and the new track has started, reset the transitioning state and restore volume
+        if self.isTransitioning and not self.isFading and position < duration - 1000:
+            self.fadeIn()
 
     def fadeOut(self):
         # Run the fade out on a new thread with the function set as the target for the thread and by calling start
@@ -212,7 +211,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initPlaylist(self):
         # Create QMediaPlaylist, connect to player, create and connect playlist model, connect media control pressed signals to playlist methods
-        self.playlist = QtMultimedia.QMediaPlaylist()
+        self.playlist = QtMultimedia.QMediaPlaylist(self)
         self.player.setPlaylist(self.playlist)
         self.playlistModel = PlaylistModel(self.playlist)
         self.control_previous.pressed.connect(self.previousTrack)
@@ -747,7 +746,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     split = fname.split(os.path.extsep)
 
                     if lib.supportedFormats.__contains__(split[len(split)-1]):
-                        paths.append(path + fname)
+                        paths.append(os.path.join(path, fname))
                 
                 if paths:
                     paths.sort()
