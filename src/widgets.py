@@ -323,7 +323,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def switchToMinimalLayout(self):
         # Hide extra widgets, set the label alignment and set the fixed size to the mini dimensions
         self.volumeSlider.hide()
-        self.metadata_label.setAlignment(QtCore.Qt.AlignCenter)
         self.coverart_label.hide()
         self.control_playlist_moveDown.hide()
         self.control_playlist_moveUp.hide()
@@ -331,18 +330,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_playlist_clear.hide()
         self.playlistView.hide()
 
+        self.metadata_label.setAlignment(QtCore.Qt.AlignCenter)
+
         self.setFixedSize(self.width_mini, self.height_mini)
 
     def switchToStandardLayout(self):
-        # Show the standard widgets, reset the label alignment, set the original maximum and minimum sizes and resize the window
+        # Show the standard widgets, show the cover art if it was previously displayed [there is media, the coverart pixmap exists and is not a null pixmap], reset the label alignment, set the original maximum and minimum sizes and resize the window
         self.volumeSlider.show()
-        self.metadata_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.coverart_label.show()
+
+        coverart_pixmap = self.coverart_label.pixmap()
+        if self.playlist.mediaCount() > 0 and coverart_pixmap != None and not coverart_pixmap.isNull():
+            self.coverart_label.show()
+        
         self.control_playlist_moveDown.show()
         self.control_playlist_moveUp.show()
         self.control_playlist_remove.show()
         self.control_playlist_clear.show()
         self.playlistView.show()
+
+        self.metadata_label.setAlignment(QtCore.Qt.AlignLeft)
 
         self.setMaximumSize(lib.maxWidth, lib.maxHeight)
         self.setMinimumSize(self.originalMinimumSize)
@@ -826,7 +832,6 @@ class LyricsWidget(QtWidgets.QWidget):
         self.width = 300
         self.height = 300
         self.title = lib.progName + lib.titleSeparator + self.tr("Lyrics")
-        self.execDir = lib.get_execdir()
 
         self.initUI()
     
@@ -841,7 +846,7 @@ class LyricsWidget(QtWidgets.QWidget):
         
         self.createWidgets()
         self.createLayout()
-        lib.setLyricsToken(self.execDir)
+        lib.setLyricsToken(lib.execDir)
 
         self.show()
 

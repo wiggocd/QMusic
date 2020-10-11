@@ -16,7 +16,7 @@ execDir: str = None
 mediaFileName = "media.txt"
 globalStyleSheet = ""
 titleSeparator = " - "
-rootWidth = 430
+rootWidth = 460
 rootHeight = 320
 miniWidth = 380
 miniHeight = 180
@@ -24,6 +24,7 @@ maxWidth = 16777215
 maxHeight = 16777215
 lyricsObject: lyricsgenius.Genius = None
 lyricsTokenFileName = "lyricsgenius_token.txt"
+QDarkStyleSrcFileName = "QDarkStyle.qss"
 
 supportedFormats = [
     "wav",
@@ -172,6 +173,17 @@ def setAltLabelStyle(label: QtWidgets.QLabel):
         QLabel {color: #""" + textColour + """}
         """
     )
+
+def loadStyleFromSrc(styleFileName: str, execDir: str, styleName: str) -> Style:
+    # Using the open function, load the style file from the executable directory and read in the data as a string, return a Style instance from the style name and stylesheet string
+    styleString = ""
+    with open(os.path.join(execDir, styleFileName), "r") as openFile:
+        styleString = openFile.read()
+    
+    return Style(styleName, styleString)
+
+def loadQDarkStyle(execDir: str) -> Style:
+    return loadStyleFromSrc(QDarkStyleSrcFileName, execDir, "QDarkStyle")
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):
