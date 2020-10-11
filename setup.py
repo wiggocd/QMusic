@@ -93,7 +93,7 @@ BUILDDIR_NUITKA = get_relativeToRealPath(BUILDNAME + os.path.extsep + "build", e
 PYINSTALLER_SPEC = BUILDNAME + os.path.extsep + "spec"
 RESOURCES = get_relativeToRealPath("resources", execDir)
 SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
-linkScriptPath = "/usr/local/bin/qmusic"
+launchScriptPath = "/usr/local/bin/qmusic"
 
 def get_interpreter():
     # If the platform is macOS (darwin), use python3, otherwise use standard python and assume it's Python 3
@@ -212,17 +212,17 @@ def createLaunchScript():
     # sudo()
 
     # Open the path to the script for writing at write the link script, make the file executable with chmod
-    with open(linkScriptPath, "w") as openFile:
+    with open(launchScriptPath, "w") as openFile:
         openFile.write(generateLaunchScript())
 
-    os.chmod(linkScriptPath, 755)
+    os.chmod(launchScriptPath, 755)
 
 def removeLaunchScript():
     # sudo()
 
     # If the link script exists, remove it
-    if os.path.isfile(linkScriptPath):
-        os.remove(linkScriptPath)
+    if os.path.isfile(launchScriptPath):
+        os.remove(launchScriptPath)
 
 #   Custom setup commands
 #   For each extension of the Command class from setuptools, provide:
