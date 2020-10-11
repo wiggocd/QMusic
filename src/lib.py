@@ -9,6 +9,7 @@ from PySide2 import QtGui, QtCore, QtWidgets
 import json
 import mutagen
 import lyricsgenius
+from shutil import rmtree
 
 # Globals
 progName = "QMusic"
@@ -21,8 +22,10 @@ configDict: dict = None
 globalStyleIndex = 0
 globalStyleSheet = ""
 titleSeparator = " - "
-rootWidth = 460
-rootHeight = 320
+defaultLeft = 0
+defaultTop = 0
+defaultWidth = 460
+defaultHeight = 320
 miniWidth = 380
 miniHeight = 180
 maxWidth = 16777215
@@ -234,6 +237,9 @@ def updateMainConfig(key: str, data: any):
     # Set the key in the config dictionary with the data provided and proceed to write the new config to the main config JSON
     config[key] = data
     writeToMainConfigJSON(config)
+
+def removeConfigDir():
+    rmtree(configDir)
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):

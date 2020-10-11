@@ -19,9 +19,8 @@ if is_admin:
 class MainWindow(QtWidgets.QMainWindow):
     #   -   init: 
     #       -   Call init on super
-    #       -   Set geometry variables
+    #       -   Set geometry variables from geometry key in config if the key exists, otherwise set them to defaults
     #       -   Set app from QApplication parameter
-    #       -   Set original minimum size
     #       -   Set player fade rates
     #       -   Call initUI
     #   -   initUI:
@@ -37,19 +36,36 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Create menus and shortcuts
     #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables
     #       -   Set variables for fade out and in rates
+    #       -   Set the minimum size to the current size
+    #       -   If the player was in the mini layout last launch, switch to the mini layout
+    #       -   If the config contains it, load and set the minimum size, otherwise if the layout is set to standard, save the minimum size to the config dictionary and to disk
     #       -   Show
 
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__()
-        self.left = 0
-        self.top = 0
-        self.width = lib.rootWidth
-        self.height = lib.rootHeight
+
+        if lib.config.__contains__("geometry"):
+            geometry = lib.config["geometry"]
+            self.left = geometry["left"]
+            self.top = geometry["top"]
+            self.width = geometry["width"]
+            self.height = geometry["height"]
+        else:
+            self.left = lib.defaultLeft
+            self.top = lib.defaultTop
+            self.width = lib.defaultWidth
+            self.height = lib.defaultHeight
+
+            lib.config["geometry"] = {}
+            lib.config["geometry"]["left"] = self.left
+            lib.config["geometry"]["top"] = self.top
+            lib.config["geometry"]["width"] = self.width
+            lib.config["geometry"]["height"] = self.height
+
         self.width_mini = lib.miniWidth
         self.height_mini = lib.miniHeight
         self.title = lib.progName
         self.app = app
-        self.originalMinimumSize = self.minimumSize()
 
         self.rate_ms_fadeOut = 200
         self.rate_ms_fadeIn = 200
@@ -76,9 +92,42 @@ class MainWindow(QtWidgets.QMainWindow):
         self.isTransitioning = False
         self.isFading = False
         self.lastVolume = self.player.volume()
-        self.currentLayout = 0
 
+        self.originalMinimumSize = self.size()
+
+        if lib.config.__contains__("layout"):
+            self.currentLayout = lib.config["layout"]
+            self.switchLayout(self.currentLayout)
+        else:
+            self.currentLayout = lib.config["layout"] = 0
+            self.switchLayout(self.currentLayout)
+
+        if self.currentLayout == 0 and not lib.config.__contains__("minSize"):
+            self.originalMinimumSize = self.minimumSize()
+            lib.config["minSize"] = {}
+            lib.config["minSize"]["w"] = self.originalMinimumSize.width()
+            lib.config["minSize"]["h"] = self.originalMinimumSize.height()
+            lib.writeToMainConfigJSON(lib.config)
+
+        elif lib.config.__contains__("minSize"):
+            minSize = lib.config["minSize"]
+            self.originalMinimumSize = QtCore.QSize(minSize["w"], minSize["h"])
+        
         self.show()
+
+    def moveEvent(self, event: QtGui.QMoveEvent):
+        # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["geometry"]["left"] = self.geometry().left()
+        lib.config["geometry"]["top"] = self.geometry().top()
+
+        lib.writeToMainConfigJSON(lib.config)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        # Set the width and height keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["geometry"]["width"] = self.geometry().width()
+        lib.config["geometry"]["height"] = self.geometry().height()
+
+        lib.writeToMainConfigJSON(lib.config)
 
     def createWidgets(self):
         # Create buttons, labels and sliders
@@ -319,14 +368,24 @@ class MainWindow(QtWidgets.QMainWindow):
         lib.clearConfigFile(lib.configDir, lib.mediaFileName)
         self.playlistModel.layoutChanged.emit()
     
-    def switchLayout(self):
-        # If the current layout is 0 (main), switch to minimal layout - otherwise switch to the standard layout
-        if self.currentLayout == 0:
+    def switchLayout(self, layout: int):
+        # Switch to the mini layout if the layout is 1 - otherwise switch to the standard layout, and for both add the layout index to the config and write to disk
+        if layout == 1:
             self.switchToMinimalLayout()
             self.currentLayout = 1
         else:
             self.switchToStandardLayout()
             self.currentLayout = 0
+
+        lib.config["layout"] = self.currentLayout
+        lib.writeToMainConfigJSON(lib.config)
+
+    def toggleLayout(self):
+        # If the current layout is the standard (0), switch to the mini (1) and vice versa
+        if self.currentLayout == 0:
+            self.switchLayout(1)
+        else:
+            self.switchLayout(0)
 
     def switchToMinimalLayout(self):
         # Hide extra widgets, set the label alignment and set the fixed size to the mini dimensions
@@ -536,7 +595,7 @@ class MainWindow(QtWidgets.QMainWindow):
         openDirAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+O", "File|Open Directory")))
 
         switchSizeAction = QtWidgets.QAction(self.tr("Switch Player Size"), self)
-        switchSizeAction.triggered.connect(self.switchLayout)
+        switchSizeAction.triggered.connect(self.toggleLayout)
         switchSizeAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+S", "Player|Switch Player Size")))
 
         lyricsAction = QtWidgets.QAction(self.tr("Lyrics"), self)
@@ -836,11 +895,16 @@ class Preferences(QtWidgets.QWidget):
         self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
         self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
+        # Create other widgets and buttons connecting pressed signals
+        self.button_clearConfig = QtWidgets.QPushButton(self.tr("Clear All Config"))
+        self.button_clearConfig.pressed.connect(lib.removeConfigDir)
+
     def createLayout(self):
         # Create the QGridLayout and add widgets accordingly with coordinates passed as parameters, set the layout
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.styleLabel, 0, 0)
         layout.addWidget(self.styleBox, 0, 1)
+        layout.addWidget(self.button_clearConfig, 1, 0)
         self.setLayout(layout)
 
     def styleSelectionChanged(self, index: int):
