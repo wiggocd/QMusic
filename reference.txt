@@ -49,3 +49,6 @@ https://www.tutorialspoint.com/python/os_chmod.htm
 
 PyInstaller Usage:
 https://pyinstaller.readthedocs.io/en/stable/usage.html
+
+Unix chmod cheatsheet:
+https://gist.github.com/juanarbol/c44e736be70279c1fd5d68aa24f9d8be
