@@ -213,7 +213,7 @@ def createLaunchScript():
 
     # Open the path to the script for writing at write the link script, make the file executable with chmod
     with open(linkScriptPath, "w") as openFile:
-        openFile.write(generateLinkScript())
+        openFile.write(generateLaunchScript())
 
     os.chmod(linkScriptPath, 755)
 
