@@ -208,7 +208,7 @@ def createLink():
     sudo()
 
     # Open the path to the script for writing at write the link script, make the file executable with chmod
-    with os.open(linkScriptPath, "w") as openFile:
+    with open(linkScriptPath, "w") as openFile:
         openFile.write(generateLinkScript())
 
     os.chmod(linkScriptPath, 751)
@@ -347,37 +347,70 @@ else:
 
 #   Call the setuptools main setup function with all metadata and commands passed as parameters:
 #       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
-setup(  
-    name=NAME,
-    version=about["__version__"],
-    description=DESCRIPTION,
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    author=AUTHOR,
-    author_email=EMAIL,
-    python_requires=REQUIRES_PYTHON,
-    url=URL,
-    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
-    install_requires=required,
-    extras_require=EXTRAS,
-    include_package_data=True,
-    license="ISC",
-    classifiers=[
-        # Trove classifiers
-        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "License :: OSI Approved :: ISC License (ISCL)",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5"
-    ],
-    cmdclass={
-        "run": Run,
-        "clean": Clean,
-        "unix-link": UnixLink,
-        "compile": Compile,
-        "makeapp": MakeApp,
-    },
-    app=APP,
-    data_files=DATA_FILES,
-    options=OPTIONS
-)
+if darwin or win32:
+    setup(  
+        name=NAME,
+        version=about["__version__"],
+        description=DESCRIPTION,
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        author=AUTHOR,
+        author_email=EMAIL,
+        python_requires=REQUIRES_PYTHON,
+        url=URL,
+        packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+        install_requires=required,
+        extras_require=EXTRAS,
+        include_package_data=True,
+        license="ISC",
+        classifiers=[
+            # Trove classifiers
+            # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+            "License :: OSI Approved :: ISC License (ISCL)",
+            "Programming Language :: Python",
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.5"
+        ],
+        cmdclass={
+            "run": Run,
+            "clean": Clean,
+            "unixlink": UnixLink,
+            "compile": Compile,
+            "makeapp": MakeApp,
+        },
+        app=APP,
+        data_files=DATA_FILES,
+        options=OPTIONS
+    )
+else:
+    setup(  
+        name=NAME,
+        version=about["__version__"],
+        description=DESCRIPTION,
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        author=AUTHOR,
+        author_email=EMAIL,
+        python_requires=REQUIRES_PYTHON,
+        url=URL,
+        packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+        install_requires=required,
+        extras_require=EXTRAS,
+        include_package_data=True,
+        license="ISC",
+        classifiers=[
+            # Trove classifiers
+            # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+            "License :: OSI Approved :: ISC License (ISCL)",
+            "Programming Language :: Python",
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.5"
+        ],
+        cmdclass={
+            "run": Run,
+            "clean": Clean,
+            "unixlink": UnixLink,
+            "compile": Compile,
+            "makeapp": MakeApp,
+        }
+    )
