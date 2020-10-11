@@ -18,6 +18,10 @@ globalStyleSheet = ""
 titleSeparator = " - "
 rootWidth = 430
 rootHeight = 320
+miniWidth = 380
+miniHeight = 180
+maxWidth = 16777215
+maxHeight = 16777215
 lyricsObject: lyricsgenius.Genius = None
 lyricsTokenFileName = "lyricsgenius_token.txt"
 

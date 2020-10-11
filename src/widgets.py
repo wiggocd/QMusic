@@ -21,6 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Call init on super
     #       -   Set geometry variables
     #       -   Set app from QApplication parameter
+    #       -   Set original minimum size
     #       -   Set player fade rates
     #       -   Call initUI
     #   -   initUI:
@@ -34,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Add media from config, reset lastMediaCount, isTransitioning, isFading and lastVolume variables
+    #       -   Add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables
     #       -   Set variables for fade out and in rates
     #       -   Show
 
@@ -44,8 +45,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.top = 0
         self.width = lib.rootWidth
         self.height = lib.rootHeight
+        self.width_mini = lib.miniWidth
+        self.height_mini = lib.miniHeight
         self.title = lib.progName
         self.app = app
+        self.originalMinimumSize = self.minimumSize()
 
         self.rate_ms_fadeOut = 200
         self.rate_ms_fadeIn = 200
@@ -71,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.isTransitioning = False
         self.isFading = False
         self.lastVolume = self.player.volume()
+        self.currentLayout = 0
 
         self.show()
 
@@ -105,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.basichelp_label.hide()
         self.basichelp_label.pressed.connect(self.basichelp_label.hide)
 
-        # Create playlist action buttons and connect pressed signals
+        # Create playlist and action buttons, connect pressed signals
         self.control_playlist_moveDown = QtWidgets.QPushButton(self.tr("Move Down"))
         self.control_playlist_moveUp = QtWidgets.QPushButton(self.tr("Move Up"))
         self.control_playlist_remove = QtWidgets.QPushButton(self.tr("Remove"))
@@ -306,6 +311,43 @@ class MainWindow(QtWidgets.QMainWindow):
         lib.clearConfigFile(lib.configDir, lib.mediaFileName)
         self.playlistModel.layoutChanged.emit()
     
+    def switchLayout(self):
+        # If the current layout is 0 (main), switch to minimal layout - otherwise switch to the standard layout
+        if self.currentLayout == 0:
+            self.switchToMinimalLayout()
+            self.currentLayout = 1
+        else:
+            self.switchToStandardLayout()
+            self.currentLayout = 0
+
+    def switchToMinimalLayout(self):
+        # Hide extra widgets, set the label alignment and set the fixed size to the mini dimensions
+        self.volumeSlider.hide()
+        self.metadata_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.coverart_label.hide()
+        self.control_playlist_moveDown.hide()
+        self.control_playlist_moveUp.hide()
+        self.control_playlist_remove.hide()
+        self.control_playlist_clear.hide()
+        self.playlistView.hide()
+
+        self.setFixedSize(self.width_mini, self.height_mini)
+
+    def switchToStandardLayout(self):
+        # Show the standard widgets, reset the label alignment, set the original maximum and minimum sizes and resize the window
+        self.volumeSlider.show()
+        self.metadata_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.coverart_label.show()
+        self.control_playlist_moveDown.show()
+        self.control_playlist_moveUp.show()
+        self.control_playlist_remove.show()
+        self.control_playlist_clear.show()
+        self.playlistView.show()
+
+        self.setMaximumSize(lib.maxWidth, lib.maxHeight)
+        self.setMinimumSize(self.originalMinimumSize)
+        self.resize(self.width, self.height)
+
     #
     #   Revise
     #
@@ -414,6 +456,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def createLayout(self):
         # Create main vertical layout, add horizontal layouts with added sub-widgets to vertical layout
         detailsGroup = QtWidgets.QGroupBox()
+        
         hControlLayout = QtWidgets.QHBoxLayout()
         hControlLayout.addWidget(self.control_previous)
         hControlLayout.addWidget(self.control_playpause)
@@ -458,6 +501,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create main menu from menuBar method, use addMenu for submenus and add QActions accordingly with triggered connect method, set shortcut from QKeySequence on QActions
         self.mainMenu = self.menuBar()
         fileMenu = self.mainMenu.addMenu(self.tr("File"))
+        playerMenu = self.mainMenu.addMenu(self.tr("Player"))
         playlistMenu = self.mainMenu.addMenu(self.tr("Playlist"))
         helpMenu = self.mainMenu.addMenu(self.tr("Help"))
 
@@ -477,9 +521,13 @@ class MainWindow(QtWidgets.QMainWindow):
         openDirAction.triggered.connect(self.open_directory)
         openDirAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+O", "File|Open Directory")))
 
+        switchSizeAction = QtWidgets.QAction(self.tr("Switch Player Size"), self)
+        switchSizeAction.triggered.connect(self.switchLayout)
+        switchSizeAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+S", "Player|Switch Player Size")))
+
         lyricsAction = QtWidgets.QAction(self.tr("Lyrics"), self)
         lyricsAction.triggered.connect(self.showLyrics)
-        lyricsAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+L", "File|Lyrics")))
+        lyricsAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+L", "Player|Lyrics")))
 
         playlistRemoveAction = QtWidgets.QAction(self.tr("Remove"), self)
         playlistRemoveAction.triggered.connect(self.removeMedia)
@@ -496,7 +544,8 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(preferencesAction)
         fileMenu.addAction(openFileAction)
         fileMenu.addAction(openDirAction)
-        fileMenu.addAction(lyricsAction)
+        playerMenu.addAction(switchSizeAction)
+        playerMenu.addAction(lyricsAction)
         playlistMenu.addAction(playlistRemoveAction)
         playlistMenu.addAction(playlistClearAction)
         helpMenu.addAction(basicHelpAction)
