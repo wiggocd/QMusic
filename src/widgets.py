@@ -44,8 +44,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__()
 
-        if lib.config.__contains__("geometry"):
-            geometry = lib.config["geometry"]
+        if lib.config.__contains__("geometry") and lib.config["geometry"].__contains__("mainWindow"):
+            geometry = lib.config["geometry"]["mainWindow"]
             self.left = geometry["left"]
             self.top = geometry["top"]
             self.width = geometry["width"]
@@ -56,11 +56,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.width = lib.defaultWidth
             self.height = lib.defaultHeight
 
-            lib.config["geometry"] = {}
-            lib.config["geometry"]["left"] = self.left
-            lib.config["geometry"]["top"] = self.top
-            lib.config["geometry"]["width"] = self.width
-            lib.config["geometry"]["height"] = self.height
+            if not lib.config.__contains__("geometry"):
+                lib.config["geometry"] = {}
+            lib.config["geometry"]["mainWindow"] = {}
+            lib.config["geometry"]["mainWindow"]["left"] = self.left
+            lib.config["geometry"]["mainWindow"]["top"] = self.top
+            lib.config["geometry"]["mainWindow"]["width"] = self.width
+            lib.config["geometry"]["mainWindow"]["height"] = self.height
 
         self.width_mini = lib.miniWidth
         self.height_mini = lib.miniHeight
@@ -102,30 +104,30 @@ class MainWindow(QtWidgets.QMainWindow):
             self.currentLayout = lib.config["layout"] = 0
             self.switchLayout(self.currentLayout)
 
-        if self.currentLayout == 0 and not lib.config.__contains__("minSize"):
+        if self.currentLayout == 0 and not lib.config.__contains__("mainWindow_minSize"):
             self.originalMinimumSize = self.minimumSize()
-            lib.config["minSize"] = {}
-            lib.config["minSize"]["w"] = self.originalMinimumSize.width()
-            lib.config["minSize"]["h"] = self.originalMinimumSize.height()
+            lib.config["mainWindow_minSize"] = {}
+            lib.config["mainWindow_minSize"]["w"] = self.originalMinimumSize.width()
+            lib.config["mainWindow_minSize"]["h"] = self.originalMinimumSize.height()
             lib.writeToMainConfigJSON(lib.config)
 
-        elif lib.config.__contains__("minSize"):
-            minSize = lib.config["minSize"]
+        elif lib.config.__contains__("mainWindow_minSize"):
+            minSize = lib.config["mainWindow_minSize"]
             self.originalMinimumSize = QtCore.QSize(minSize["w"], minSize["h"])
         
         self.show()
 
     def moveEvent(self, event: QtGui.QMoveEvent):
         # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
-        lib.config["geometry"]["left"] = self.geometry().left()
-        lib.config["geometry"]["top"] = self.geometry().top()
+        lib.config["geometry"]["mainWindow"]["left"] = self.geometry().left()
+        lib.config["geometry"]["mainWindow"]["top"] = self.geometry().top()
 
         lib.writeToMainConfigJSON(lib.config)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
         # Set the width and height keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
-        lib.config["geometry"]["width"] = self.geometry().width()
-        lib.config["geometry"]["height"] = self.geometry().height()
+        lib.config["geometry"]["mainWindow"]["width"] = self.geometry().width()
+        lib.config["geometry"]["mainWindow"]["height"] = self.geometry().height()
 
         lib.writeToMainConfigJSON(lib.config)
 
@@ -644,7 +646,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showLyrics(self):
         # Create instance of lyrics widget
-        self.lyricsView = LyricsWidget()
+        self.lyricsView = LyricsWidget(self)
 
     def show_basichelp(self):
         # Show the label
@@ -938,8 +940,8 @@ class LyricsWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__()
 
-        if lib.config.__contains__("lyricsGeometry"):
-            geometry = lib.config["lyricsGeometry"]
+        if lib.config.__contains__("geometry") and lib.config["geometry"].__contains__("lyrics"):
+            geometry = lib.config["geometry"]["lyrics"]
             self.left = geometry["left"]
             self.top = geometry["top"]
             self.width = geometry["width"]
@@ -964,12 +966,14 @@ class LyricsWidget(QtWidgets.QWidget):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setWindowTitle(self.title)
 
-        if not lib.config.__contains__("lyricsGeometry"):
-            lib.config["lyricsGeometry"] = {}
-            lib.config["lyricsGeometry"]["left"] = self.left
-            lib.config["lyricsGeometry"]["top"] = self.top
-            lib.config["lyricsGeometry"]["width"] = self.width
-            lib.config["lyricsGeometry"]["height"] = self.height
+        if not lib.config.__contains__("geometry") or not lib.config["geometry"].__contains__("lyrics"):
+            if not lib.config.__contains__("geometry"):
+                lib.config["geometry"] = {}
+            lib.config["geometry"]["lyrics"] = {}
+            lib.config["geometry"]["lyrics"]["left"] = self.left
+            lib.config["geometry"]["lyrics"]["top"] = self.top
+            lib.config["geometry"]["lyrics"]["width"] = self.width
+            lib.config["geometry"]["lyrics"]["height"] = self.height
 
         self.songText = ""
         self.artistText = ""
@@ -984,15 +988,15 @@ class LyricsWidget(QtWidgets.QWidget):
 
     def moveEvent(self, event: QtGui.QMoveEvent):
         # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
-        lib.config["lyricsGeometry"]["left"] = self.geometry().left()
-        lib.config["lyricsGeometry"]["top"] = self.geometry().top()
+        lib.config["geometry"]["lyrics"]["left"] = self.geometry().left()
+        lib.config["geometry"]["lyrics"]["top"] = self.geometry().top()
 
         lib.writeToMainConfigJSON(lib.config)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
         # Set the width and height keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
-        lib.config["lyricsGeometry"]["width"] = self.geometry().width()
-        lib.config["lyricsGeometry"]["height"] = self.geometry().height()
+        lib.config["geometry"]["lyrics"]["width"] = self.geometry().width()
+        lib.config["geometry"]["lyrics"]["height"] = self.geometry().height()
 
         lib.writeToMainConfigJSON(lib.config)
 
