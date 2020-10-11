@@ -6,10 +6,11 @@
 import os
 from typing import Union, List
 from PySide2 import QtGui, QtCore, QtWidgets
-import mutagen
 import json
+import mutagen
 import lyricsgenius
 
+# Globals
 progName = "QMusic"
 textColour = "A7A7A7"
 configDir: str = None
@@ -110,7 +111,7 @@ def urlStringToPath(urlString: str) -> str:
 #
 
 def getAdminStatus() -> bool:
-    #   Reminders
+    #   Reminders:
     #   - import ctypes
     #   - if os.getuid == x ...
     #   - ctypes.windll.shell32.IsUserAnAdmin != 0 ...

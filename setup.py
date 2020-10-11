@@ -98,7 +98,7 @@ def get_requirements():
     return required
 
 def get_long_description():
-    # Import the README.md as long description by reading
+    # Import the README.md as long description by reading from disk, set the long description to the standard description if the file is not found
     try:
         with open(PATH_README, "r") as f:
             long_description = f.read()
@@ -119,12 +119,15 @@ def get_about():
     return about
 
 def run_py():
+    # Run the python file with the interpreter using system
     os.system(interpreter + " \"" + SRCFILE + "\"")
 
 def run_exec():
+    # Run the executable
     os.system(OUTFILE)
 
 def run_macos():
+    # Use the darwin specific open shell command
     os.system("open " + "\"OUTAPP\"")
 
 def clean_build():
@@ -153,14 +156,22 @@ def clean_egginfo():
                 rmtree(path)
 
 def clean_all():
+    # Run all the clean functions
     clean_build()
     clean_dist()
     clean_egginfo()
 
 def makeapp():
+    # Run the concatenated path to the makeapp script and pass the executable and output path parameters
     os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
 
-# Custom setup commands
+#   Custom setup commands
+#   For each extension of the Command class from setuptools, provide:
+#       -   description
+#       -   user_options list of tuples with names, shortcuts and descriptions
+#       -   initialize_options and finalize_options
+#       -   the main function with the name of the command option, running the methods required
+
 class Run(Command):
     description = "Run program"
 
@@ -236,13 +247,13 @@ class MakeApp(Command):
     def run(self):
         makeapp()
 
-
 long_description = get_long_description()
 about = get_about()
 required = get_requirements()
 interpreter = get_interpreter()
 
-# Call the setuptools main setup function with all metadata and commands passed as parameters
+#   Call the setuptools main setup function with all metadata and commands passed as parameters:
+#       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
 setup(  
     name=NAME,
     version=about["__version__"],

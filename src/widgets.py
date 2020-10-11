@@ -785,6 +785,9 @@ class MainWindow(QtWidgets.QMainWindow):
 #
 
 class ClickableLabel(QtWidgets.QLabel):
+    #   -   Call super init from init with text and parent passed
+    #   -   Emit the pressed signal on the mousePressEvent
+
     pressed = QtCore.Signal()
 
     def __init__(self, text: str, parent: QtWidgets.QWidget = None):
@@ -794,6 +797,14 @@ class ClickableLabel(QtWidgets.QLabel):
         self.pressed.emit()
 
 class Preferences(QtWidgets.QWidget):
+    #   -   Init:
+    #       -   Set geometry variables, title and application from parameter
+    #       -   Call initUI
+    #   -   initUI:
+    #       -   Set geometry and window title
+    #       -   Create widgets and layout
+    #       -   Show
+
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__()
         self.left = 0
@@ -814,28 +825,39 @@ class Preferences(QtWidgets.QWidget):
         self.show()
 
     def createWidgets(self):
+        # Create the style label and combo box, add options from style list
         self.styleLabel = QtWidgets.QLabel(self.tr("Style"), self)
         self.styleBox = QtWidgets.QComboBox(self)
         
         for style in lib.styles:
             self.styleBox.addItem(self.tr(style.name))
         
+        # Connect the combo box index change signal to the style selection handler and set the current index to the current style
         self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
         self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
     def createLayout(self):
+        # Create the QGridLayout and add widgets accordingly with coordinates passed as parameters, set the layout
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.styleLabel, 0, 0)
         layout.addWidget(self.styleBox, 0, 1)
         self.setLayout(layout)
 
     def styleSelectionChanged(self, index: int):
+        # Set the global style index and stylesheet from the current style in the list, set the QApplication stylesheet and update the main config with the new style index
         lib.globalStyleIndex = index
         lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
         lib.updateMainConfig("style", index)
 
 class LyricsWidget(QtWidgets.QWidget):
+    #   Init:
+    #       -   Set geometry and title variables, call initUI
+    #   initUI:
+    #       -   Set geometry, title and default text
+    #       -   Create the widgets and layout, along with setting the lyrics token from the executable directory
+    #       -   Show
+
     def __init__(self):
         super().__init__()
         self.left = 0
@@ -862,6 +884,7 @@ class LyricsWidget(QtWidgets.QWidget):
         self.show()
 
     def createWidgets(self):
+        # Create labels and Line Edit boxes for song details entry, create the search button ad scroll view with the output label and word wrap enabled
         self.artistLabel = QtWidgets.QLabel("Artist")
         self.songLabel = QtWidgets.QLabel("Song")
 
@@ -883,6 +906,7 @@ class LyricsWidget(QtWidgets.QWidget):
         self.scrollView.setWidgetResizable(True)
 
     def createLayout(self):
+        # Create the group boxes, create the grid layout with coordinates added for each widget comprising song details entry, create the layouts for the button and text groups and set the layout
         entryGroup = QtWidgets.QGroupBox()
         buttonGroup = QtWidgets.QGroupBox()
         textGroup = QtWidgets.QGroupBox()
@@ -912,12 +936,15 @@ class LyricsWidget(QtWidgets.QWidget):
         self.setLayout(layout)
     
     def songBoxChanged(self, text: str):
+        # Set the song text
         self.songText = text
 
     def artistBoxChanged(self, text: str):
+        # Set the artist text
         self.artistText = text
 
     def search(self):
+        # If the lyrics object exists, the song and artist names are set and the song details are different to before, set the song from the lyrics object, set the output label text from the song lyrics property, set the last searched song and artist
         if lib.lyricsObject != None and self.songText != "" and self.artistText != "" and self.lastSearchedSong != self.songText and self.lastSearchedArtist != self.artistText:
             self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
             self.outputLabel.setText(self.song.lyrics)
