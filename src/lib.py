@@ -7,13 +7,17 @@ import os
 from typing import Union, List
 from PySide2 import QtGui, QtCore, QtWidgets
 import mutagen
+import json
 import lyricsgenius
 
 progName = "QMusic"
 textColour = "A7A7A7"
 configDir: str = None
 execDir: str = None
+mainConfigJSONFileName = "config.json"
 mediaFileName = "media.txt"
+configDict: dict = None
+globalStyleIndex = 0
 globalStyleSheet = ""
 titleSeparator = " - "
 rootWidth = 460
@@ -25,6 +29,13 @@ maxHeight = 16777215
 lyricsObject: lyricsgenius.Genius = None
 lyricsTokenFileName = "lyricsgenius_token.txt"
 QDarkStyleSrcFileName = "QDarkStyle.qss"
+config = {}
+
+defaultConfig = {
+    "volume": 100,
+    "playerSize": 0,
+    "style": 0
+}
 
 supportedFormats = [
     "wav",
@@ -175,15 +186,53 @@ def setAltLabelStyle(label: QtWidgets.QLabel):
     )
 
 def loadStyleFromSrc(styleFileName: str, execDir: str, styleName: str) -> Style:
-    # Using the open function, load the style file from the executable directory and read in the data as a string, return a Style instance from the style name and stylesheet string
+    # If the style file exists, using the open function load the style file from the executable directory and read in the data as a string, return a Style instance from the style name and stylesheet string
     styleString = ""
-    with open(os.path.join(execDir, styleFileName), "r") as openFile:
-        styleString = openFile.read()
+    path = os.path.join(execDir, styleFileName)
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            styleString = openFile.read()
     
     return Style(styleName, styleString)
 
 def loadQDarkStyle(execDir: str) -> Style:
     return loadStyleFromSrc(QDarkStyleSrcFileName, execDir, "QDarkStyle")
+
+def loadConfigJSON(fileName: str, configDirPath: str) -> dict:
+    # If the path from the filename and config path exists, read the data from the file as a string and use the JSON load string function to parse the data and return it
+    path = os.path.join(configDirPath, fileName)
+    data = {}
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            data = json.loads(openFile.read())
+
+    return data
+
+def loadMainConfigJSON():
+    return loadConfigJSON(mainConfigJSONFileName, configDir)
+
+def writeToConfigJSON(data: dict, fileName: str, configDirPath: str):
+    # Dump the dict to a json string and write it to the file
+    string = json.dumps(data)
+
+    with open(os.path.join(configDirPath, fileName), "w") as openFile:
+        openFile.write(string)
+
+def writeToMainConfigJSON(data: dict):
+    # Write to the main config JSON from the data
+    return writeToConfigJSON(data, mainConfigJSONFileName, configDir)
+
+def writeDefaultConfig():
+    # If the main config JSON doesn't exist, write the default config
+    if not os.path.isfile(os.path.join(configDir, mainConfigJSONFileName)):
+        return writeToMainConfigJSON(defaultConfig)
+
+def updateMainConfig(key: str, data: any):
+    # Set the key in the config dictionary with the data provided and proceed to write the new config to the main config JSON
+    config[key] = data
+    writeToMainConfigJSON(config)
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):

@@ -11,7 +11,9 @@ import lib
 if __name__ == "__main__":
     #   -   Set the config directory and check to create it
     #   -   Set the execDir path to the directory of the executed file
+    #   -   Write the default config JSON if it doesn't exist and proceed to load the main config JSON
     #   -   Create QApplication
+    #   -   Set the app stylesheet from the config
     #   -   Create MainWindow
     #   -   Exit on app exec_ method
 
@@ -19,8 +21,15 @@ if __name__ == "__main__":
     lib.create_configDir(lib.configDir)
     lib.execDir = lib.get_execdir()
     lib.styles.append(lib.loadQDarkStyle(lib.execDir))
+    lib.writeDefaultConfig()
+    lib.config = lib.loadMainConfigJSON()
 
     app = QtWidgets.QApplication(sys.argv)
+
+    lib.globalStyleIndex = lib.config["style"]
+    lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
+    app.setStyleSheet(lib.globalStyleSheet)
+    
     window = MainWindow(app)
 
     sys.exit(app.exec_())

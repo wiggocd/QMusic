@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables
+    #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables
     #       -   Set variables for fade out and in rates
     #       -   Show
 
@@ -70,6 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.createShortcuts()
 
+        self.setVolume(lib.config["volume"])
         self.addMediaFromConfig()
         self.lastMediaCount = 0
         self.isTransitioning = False
@@ -124,12 +125,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def initPlayer(self):
         # Create QMediaPlayer and connect to time and volume sliders value changed members, connect player position/duration changed to update position and duration methods
         self.player = QtMultimedia.QMediaPlayer()
-        self.volumeSlider.valueChanged.connect(self.player.setVolume)
+        self.volumeSlider.valueChanged.connect(self.setVolume)
 
         # Note: self.player.setPosition adds pauses to playback
         self.timeSlider.valueChanged.connect(self.setPosition)
         self.player.durationChanged.connect(self.update_duration)
         self.player.positionChanged.connect(self.update_position)
+
+    def setVolume(self, volume: int):
+        # Set the player volume, set the slider position and update the main config
+        self.player.setVolume(volume)
+        self.volumeSlider.setSliderPosition(volume)
+        lib.updateMainConfig("volume", volume)
 
     def setPosition(self, position: int):
         # Get player position and if the new slider position has changed, set the player position
@@ -157,6 +164,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lastVolume = self.player.volume()
         volume = self.lastVolume
         self.lastTrackIndex = self.playlist.currentIndex()
+
         while volume != 0 and self.playlist.currentIndex() == self.lastTrackIndex:
             volume -= 1
             self.player.setVolume(volume)
@@ -813,6 +821,7 @@ class Preferences(QtWidgets.QWidget):
             self.styleBox.addItem(self.tr(style.name))
         
         self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
+        self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
     def createLayout(self):
         layout = QtWidgets.QGridLayout(self)
@@ -821,8 +830,10 @@ class Preferences(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def styleSelectionChanged(self, index: int):
-        lib.globalStyleSheet = lib.styles[index].styleSheet
+        lib.globalStyleIndex = index
+        lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
+        lib.updateMainConfig("style", index)
 
 class LyricsWidget(QtWidgets.QWidget):
     def __init__(self):
