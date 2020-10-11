@@ -1078,6 +1078,7 @@ class LyricsWidget(QtWidgets.QWidget):
         self.songText = text
 
     def loadAndSearchFromMetadata(self):
+        # Set the placeholder text from the parent metadata on the song details entry boxes, set the artist and song text and run the search
         metadata = self.parent.metadata
 
         self.artistBox.setPlaceholderText(metadata.artist)
