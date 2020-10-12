@@ -364,7 +364,6 @@ OPTIONS = {
     "py2app": {
         "iconfile": ICON_ICNS
     }
-<<<<<<< HEAD
 }
 
 # OS specific functions. For all Unix-like systems, import shlex for sudo. If Mac, use py2app in the setup with app, data files and options provided, otherwise if Windows, use py2exe with the app passed
@@ -473,6 +472,3 @@ elif win32:
     setup_win32()
 else:
     setup_other()
-=======
-)
->>>>>>> master
