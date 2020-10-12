@@ -1,3 +1,6 @@
+Qt5 Documentation:
+https://doc.qt.io/qt-5/index.html
+
 PyQt5 starting points:
 https://pythonspot.com/gui/
 
@@ -25,3 +28,27 @@ https://stackoverflow.com/a/46161760
 
 Reordering items in a QListView:
 https://www.qtcentre.org/threads/23258-How-to-reorder-items-in-QListView
+
+PySide2 with Nuitka:
+https://bugreports.qt.io/plugins/servlet/mobile#issue/PYSIDE-829
+
+Genius Lyrics API:
+https://docs.genius.com
+
+PyQt5 Reorderable List Model:
+https://github.com/d1vanov/PyQt5-reorderable-list-model
+
+py2app Docs:
+https://py2app.readthedocs.io/en/latest/index.html
+
+py2exe Docs:
+http://www.py2exe.org
+
+os.chmod:
+https://www.tutorialspoint.com/python/os_chmod.htm
+
+PyInstaller Usage:
+https://pyinstaller.readthedocs.io/en/stable/usage.html
+
+Unix chmod cheatsheet:
+https://gist.github.com/juanarbol/c44e736be70279c1fd5d68aa24f9d8be

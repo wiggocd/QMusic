@@ -5,23 +5,75 @@
 
 import os
 from typing import Union, List
-from PySide2 import QtGui, QtCore
+from PySide2 import QtGui, QtCore, QtWidgets
+import json
 import mutagen
+import lyricsgenius
+from shutil import rmtree
+import qdarkstyle
+
+# Globals
+progName = "QMusic"
+textColour = "A7A7A7"
+configDir: str = None
+execDir: str = None
+mainConfigJSONFileName = "config.json"
+mediaFileName = "media.txt"
+configDict: dict = None
+globalStyleIndex = 0
+globalStyleSheet = ""
+titleSeparator = " - "
+defaultLeft = 0
+defaultTop = 0
+defaultWidth = 460
+defaultHeight = 320
+miniWidth = 350
+miniHeight = 160
+maxWidth = 16777215
+maxHeight = 16777215
+lyrics_defaultWidth = 300
+lyrics_defaultHeight = 300
+lyricsToken = "AwxNghHLIPG4Zs97LyrQLtRfDZEWTKJdF6ecdYCEmkDcA3CQiCXFZHrkBeUcQvBd"
+lyricsObject: lyricsgenius.Genius = None
+lyricsTokenFileName = "lyricsgenius_token.txt"
+QDarkStyleSrcFileName = "QDarkStyle.qss"
+config = {}
+
+defaultConfig = {
+    "volume": 100,
+    "playerSize": 0,
+    "style": 0
+}
 
 supportedFormats = [
     "wav",
     "mp3",
+<<<<<<< HEAD
+    "m4a",
+    "flac"
+=======
     "flac",
     "m4a"
+>>>>>>> master
 ]
 
-textColour = "A7A7A7"
+class Style:
+    def __init__(self, name: str, styleSheet: str):
+        # Basic class: set attributes from parameters for name and style data
+        self.name = name
+        self.styleSheet = styleSheet
 
-def get_execpath() -> str:
-    return os.path.dirname(os.path.realpath(__file__))
+styles = [
+    Style("Default", "")
+]
 
-def get_resourcepath(resourceName: str, execpath: str) -> str:
-    return os.path.join(os.path.dirname(execpath), "resources", resourceName)
+def get_execdir() -> str:
+    path = os.path.dirname(os.path.realpath(__file__))
+    return path
+
+def get_resourcepath(resourceName: str, execDir: str) -> str:
+    # Return the parent directory to the running file directory and concatenate the resource directory to the returned string
+    return os.path.join(os.path.realpath(os.path.dirname(execDir)), "resources", resourceName)
 
 def to_hhmmss(ms: int) -> str:
     #   -   s = ms / 1000 rounded
@@ -70,8 +122,8 @@ def urlStringToPath(urlString: str) -> str:
 #   Revise
 #
 
-def get_admin_status() -> bool:
-    #   Reminders
+def getAdminStatus() -> bool:
+    #   Reminders:
     #   - import ctypes
     #   - if os.getuid == x ...
     #   - ctypes.windll.shell32.IsUserAnAdmin != 0 ...
@@ -85,7 +137,7 @@ def get_admin_status() -> bool:
     return is_admin
 
 #
-#   Revise
+#   Todo: comment and revise
 #
 
 def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, None]:
@@ -102,13 +154,123 @@ def get_coverart_pixmap_from_metadata(metadata: dict) -> Union[QtGui.QPixmap, No
     else:
         return None
 
+def get_configDir(progName: str) -> str:
+    # Use expanduser with nested config directory
+    return os.path.join(os.path.expanduser("~"), ".config", progName)
+
+def create_configDir(configDir: str):
+    # Check if the directory exists and create it if not
+    if not os.path.isdir(configDir):
+        os.makedirs(configDir)
+
+def writeToConfig(configDirPath: str, configFilename: str, strings: List[str]):
+    # Open file and write each string as a line if the config directory and file exists
+    fullPath = os.path.join(configDirPath, configFilename)
+    if not os.path.isdir(configDirPath):
+        create_configDir(configDirPath)
+    
+    with open(fullPath, "w") as openFile:
+        for path in strings:
+            openFile.write(path + "\n")
+
+def clearConfigFile(configDirPath: str, configFilename: str):
+    # Open file and write it to empty
+    fullPath = os.path.join(configDirPath, configFilename)
+    if os.path.isdir(configDirPath) and os.path.isfile(fullPath):
+        with open(fullPath, "w") as openFile:
+            openFile.write("")
+
+def getLyricsToken(execDir: str):
+    # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line
+    path = get_resourcepath(lyricsTokenFileName, execDir)
+    
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            return openFile.read().split("\n")[0]
+
+def setLyricsObject(execDir: str):
+    # If the token read from disk is valid, set the global lyrics object to a Genius instance from the lyrics token
+    global lyricsToken, lyricsObject
+    
+    if lyricsToken != None and len(lyricsToken) > 1:
+        lyricsObject = lyricsgenius.Genius(lyricsToken)
+
+def setAltLabelStyle(label: QtWidgets.QLabel):
+    # Set the alternative properties on the label's stylesheet
+    label.setStyleSheet(
+        """
+        QLabel {color: #""" + textColour + """}
+        """
+    )
+
+def loadStyleFromSrc(styleFileName: str, execDir: str, styleName: str) -> Style:
+    # If the style file exists, using the open function load the style file from the executable directory and read in the data as a string, return a Style instance from the style name and stylesheet string
+    styleString = ""
+    path = os.path.join(execDir, styleFileName)
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            styleString = openFile.read()
+    
+    return Style(styleName, styleString)
+
+def loadQDarkStyle_fs(execDir: str) -> Style:
+    return loadStyleFromSrc(QDarkStyleSrcFileName, execDir, "QDarkStyle")
+
+def loadQDarkStyle_lib():
+    # Append the QDarkStyle PySide2 stylesheet to the styles list
+    global styles
+    styles.append(Style("QDarkStyle", qdarkstyle.load_stylesheet_pyside2()))
+
+def loadConfigJSON(fileName: str, configDirPath: str) -> dict:
+    # If the path from the filename and config path exists, read the data from the file as a string and use the JSON load string function to parse the data and return it
+    path = os.path.join(configDirPath, fileName)
+    data = {}
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            data = json.loads(openFile.read())
+
+    return data
+
+def loadMainConfigJSON():
+    return loadConfigJSON(mainConfigJSONFileName, configDir)
+
+def writeToConfigJSON(data: dict, fileName: str, configDirPath: str):
+    # Dump the dict to a json string and write it to the file
+    string = json.dumps(data)
+
+    with open(os.path.join(configDirPath, fileName), "w") as openFile:
+        openFile.write(string)
+
+def writeToMainConfigJSON(data: dict):
+    # Write to the main config JSON from the data
+    return writeToConfigJSON(data, mainConfigJSONFileName, configDir)
+
+def writeDefaultConfig():
+    # If the main config JSON doesn't exist, write the default config
+    if not os.path.isfile(os.path.join(configDir, mainConfigJSONFileName)):
+        return writeToMainConfigJSON(defaultConfig)
+
+def updateMainConfig(key: str, data: any):
+    # Set the key in the config dictionary with the data provided and proceed to write the new config to the main config JSON
+    config[key] = data
+    writeToMainConfigJSON(config)
+
+def removeConfigDir():
+    rmtree(configDir)
 
 class Metadata:
     def __init__(self, mutagen_metadata: dict):
+        # Reset title and album attributes
         self.title = None
         self.album = None
+        self.artist = None
 
+        # If the title TIT2 exists in the metadata dictionary, set the title to the text from that dictionary and likewise for TALB corresponding to album title
         if "TIT2" in mutagen_metadata:
             self.title = mutagen_metadata["TIT2"].text[0]
         if "TALB" in mutagen_metadata:
             self.album = mutagen_metadata["TALB"].text[0]
+        if "TPE2" in mutagen_metadata:
+            self.artist = mutagen_metadata["TPE2"].text[0]
