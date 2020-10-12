@@ -156,16 +156,22 @@ def create_configDir(configDir: str):
     if not os.path.isdir(configDir):
         os.makedirs(configDir)
 
-def writeToConfig(configDir: str, configFilename: str, strings: List[str]):
-    # Open file and write each string as a line
-    with open(os.path.join(configDir, configFilename), "w") as openFile:
+def writeToConfig(configDirPath: str, configFilename: str, strings: List[str]):
+    # Open file and write each string as a line if the config directory and file exists
+    fullPath = os.path.join(configDirPath, configFilename)
+    if not os.path.isdir(configDirPath):
+        create_configDir(configDirPath)
+    
+    with open(fullPath, "w") as openFile:
         for path in strings:
             openFile.write(path + "\n")
 
-def clearConfigFile(configDir: str, configFilename: str):
+def clearConfigFile(configDirPath: str, configFilename: str):
     # Open file and write it to empty
-    with open(os.path.join(configDir, configFilename), "w") as openFile:
-        openFile.write("")
+    fullPath = os.path.join(configDirPath, configFilename)
+    if os.path.isdir(configDirPath) and os.path.isfile(fullPath):
+        with open(fullPath, "w") as openFile:
+            openFile.write("")
 
 def getLyricsToken(execDir: str):
     # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line

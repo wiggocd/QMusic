@@ -34,9 +34,9 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables
+    #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables and reset the metadata
     #       -   Set variables for fade out and in rates
-    #       -   Set the minimum size to the current size
+    #       -   Set the minimum size to the current minimum size
     #       -   If the player was in the mini layout last launch, switch to the mini layout
     #       -   If the config contains it, load and set the minimum size, otherwise if the layout is set to standard, save the minimum size to the config dictionary and to disk
     #       -   Show
@@ -94,8 +94,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.isTransitioning = False
         self.isFading = False
         self.lastVolume = self.player.volume()
+        self.metadata = None
 
-        self.originalMinimumSize = self.size()
+        self.originalMinimumSize = self.minimumSize()
 
         if lib.config.__contains__("layout"):
             self.currentLayout = lib.config["layout"]
@@ -1078,16 +1079,17 @@ class LyricsWidget(QtWidgets.QWidget):
         self.songText = text
 
     def loadAndSearchFromMetadata(self):
-        # Set the placeholder text from the parent metadata on the song details entry boxes, set the artist and song text and run the search
-        metadata = self.parent.metadata
+        # If the player has the metadata set, set the placeholder text from the parent metadata on the song details entry boxes, set the artist and song text and run the search
+        if self.parent.metadata:
+            metadata = self.parent.metadata
 
-        self.artistBox.setPlaceholderText(metadata.artist)
-        self.songBox.setPlaceholderText(metadata.title)
+            self.artistBox.setPlaceholderText(metadata.artist)
+            self.songBox.setPlaceholderText(metadata.title)
 
-        self.setArtistText(metadata.artist)
-        self.setSongText(metadata.title)
+            self.setArtistText(metadata.artist)
+            self.setSongText(metadata.title)
 
-        self.search()
+            self.search()
 
     def search(self):
         # If the lyrics object exists, the song and artist names are set and one of the song details has changed, run the second stage search function on a new thread using the threading library, the target specified and the start method
