@@ -3,11 +3,6 @@ main.build
 dist
 .vscode
 src/__pycache__
-<<<<<<< HEAD
 *.egg-info
 *.eggs
 *.spec
-=======
-.vscode
-.DS_Store
->>>>>>> master
