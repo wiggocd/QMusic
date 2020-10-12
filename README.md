@@ -24,7 +24,7 @@ Python 3.5 or newer with `python` or `python3` available in your path along with
 
 # Environment Commands
 
-`python3 setup.py build_exec` - build an executable for the current platform, should output to the `dist` directory and may require sudo on some systems
+`python3 setup.py build_exec` - build an executable for the current platform on Windows or Unix systems, should output to the `dist` directory and may require sudo on some systems whilst macOS is currently unsupported
 
 
 # Other Environment Commands
