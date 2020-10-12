@@ -22,11 +22,14 @@ Python 3.5 or newer with `python` or `python3` available in your path along with
 <img src="resources/documentation/screenshot.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
 
 
+# Environment Commands
+
+`python3 setup.py build_exec` - build an executable for the current platform, should output to the `dist` directory and may require sudo on some systems
+
+
 # Other Environment Commands
 
 `python3 setup.py clean` - clean the build environment
-
-`python3 setup.py build_exec` - build an executable for the current platform, should output to the `dist` directory and may require sudo on some systems
 
 `sudo python3 setup.py build_exec -a` - write a script to /usr/local/bin on Unix-like systems from which QMusic is launched
 
