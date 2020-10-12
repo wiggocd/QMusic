@@ -1,8 +1,17 @@
 shiboken2==5.14.0
 PySide2==5.14
 mutagen
+<<<<<<< HEAD
 keyboard
 lyricsgenius
 qdarkstyle
 pyinstaller
 #nuitka
+=======
+darkdetect
+qdarkstyle
+lyricsgenius
+#audio-metadata
+#nuitka
+#pyinstaller
+>>>>>>> master

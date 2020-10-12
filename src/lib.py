@@ -48,8 +48,13 @@ defaultConfig = {
 supportedFormats = [
     "wav",
     "mp3",
+<<<<<<< HEAD
     "m4a",
     "flac"
+=======
+    "flac",
+    "m4a"
+>>>>>>> master
 ]
 
 class Style:
