@@ -921,11 +921,12 @@ class Preferences(QtWidgets.QWidget):
         self.button_clearConfig.pressed.connect(lib.removeConfigDir)
 
     def createLayout(self):
-        # Create the QGridLayout and add widgets accordingly with coordinates passed as parameters, set the layout
+        # Create the QGridLayout and add widgets accordingly with coordinates passed as parameters, set the layout alignment and set the layout
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.styleLabel, 0, 0)
         layout.addWidget(self.styleBox, 0, 1)
         layout.addWidget(self.button_clearConfig, 1, 0)
+        layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
     def styleSelectionChanged(self, index: int):

@@ -466,6 +466,7 @@ def setup_other():
 
 #   Call the setuptools main setup function with all metadata and commands passed as parameters:
 #       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
+
 if darwin:
     setup_darwin()
 elif win32:
