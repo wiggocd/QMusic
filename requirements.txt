@@ -1,5 +1,4 @@
-shiboken2==5.14.0
-PySide2==5.14
+PySide2
 mutagen
 keyboard
 lyricsgenius
