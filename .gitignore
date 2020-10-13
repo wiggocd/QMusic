@@ -1,7 +1,9 @@
 build
 main.build
 dist
-*.egg-info
-src/__pycache__
 .vscode
+src/__pycache__
 .DS_Store
+*.egg-info
+*.eggs
+*.spec

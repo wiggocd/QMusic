@@ -156,16 +156,98 @@ def create_configDir(configDir: str):
     if not os.path.isdir(configDir):
         os.makedirs(configDir)
 
-def writeToConfig(configDir: str, configFilename: str, strings: List[str]):
-    # Open file and write each string as a line
-    with open(os.path.join(configDir, configFilename), "w") as openFile:
+def writeToConfig(configDirPath: str, configFilename: str, strings: List[str]):
+    # Open file and write each string as a line if the config directory and file exists
+    fullPath = os.path.join(configDirPath, configFilename)
+    if not os.path.isdir(configDirPath):
+        create_configDir(configDirPath)
+    
+    with open(fullPath, "w") as openFile:
         for path in strings:
             openFile.write(path + "\n")
 
-def clearConfigFile(configDir: str, configFilename: str):
+def clearConfigFile(configDirPath: str, configFilename: str):
     # Open file and write it to empty
-    with open(os.path.join(configDir, configFilename), "w") as openFile:
-        openFile.write("")
+    fullPath = os.path.join(configDirPath, configFilename)
+    if os.path.isdir(configDirPath) and os.path.isfile(fullPath):
+        with open(fullPath, "w") as openFile:
+            openFile.write("")
+
+def getLyricsToken(execDir: str):
+    # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line
+    path = get_resourcepath(lyricsTokenFileName, execDir)
+    
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            return openFile.read().split("\n")[0]
+
+def setLyricsToken(execDir: str):
+    # If the token read from disk is valid, set the global lyrics object to a Genius instance from the lyrics token
+    global lyricsObject
+    token = getLyricsToken(execDir)
+    
+    if token != None and len(token) > 1:
+        lyricsObject = lyricsgenius.Genius(token)
+
+def setAltLabelStyle(label: QtWidgets.QLabel):
+    # Set the alternative properties on the label's stylesheet
+    label.setStyleSheet(
+        """
+        QLabel {color: #""" + textColour + """}
+        """
+    )
+
+def loadStyleFromSrc(styleFileName: str, execDir: str, styleName: str) -> Style:
+    # If the style file exists, using the open function load the style file from the executable directory and read in the data as a string, return a Style instance from the style name and stylesheet string
+    styleString = ""
+    path = os.path.join(execDir, styleFileName)
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            styleString = openFile.read()
+    
+    return Style(styleName, styleString)
+
+def loadQDarkStyle(execDir: str) -> Style:
+    return loadStyleFromSrc(QDarkStyleSrcFileName, execDir, "QDarkStyle")
+
+def loadConfigJSON(fileName: str, configDirPath: str) -> dict:
+    # If the path from the filename and config path exists, read the data from the file as a string and use the JSON load string function to parse the data and return it
+    path = os.path.join(configDirPath, fileName)
+    data = {}
+
+    if os.path.isfile(path):
+        with open(path, "r") as openFile:
+            data = json.loads(openFile.read())
+
+    return data
+
+def loadMainConfigJSON():
+    return loadConfigJSON(mainConfigJSONFileName, configDir)
+
+def writeToConfigJSON(data: dict, fileName: str, configDirPath: str):
+    # Dump the dict to a json string and write it to the file
+    string = json.dumps(data)
+
+    with open(os.path.join(configDirPath, fileName), "w") as openFile:
+        openFile.write(string)
+
+def writeToMainConfigJSON(data: dict):
+    # Write to the main config JSON from the data
+    return writeToConfigJSON(data, mainConfigJSONFileName, configDir)
+
+def writeDefaultConfig():
+    # If the main config JSON doesn't exist, write the default config
+    if not os.path.isfile(os.path.join(configDir, mainConfigJSONFileName)):
+        return writeToMainConfigJSON(defaultConfig)
+
+def updateMainConfig(key: str, data: any):
+    # Set the key in the config dictionary with the data provided and proceed to write the new config to the main config JSON
+    config[key] = data
+    writeToMainConfigJSON(config)
+
+def removeConfigDir():
+    rmtree(configDir)
 
 def getLyricsToken(execDir: str):
     # Get the canonical path of the lyrics token from the resource method, and if the file exists open the file for reading and return the first line
