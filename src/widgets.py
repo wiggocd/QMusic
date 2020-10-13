@@ -449,6 +449,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
+        self.iconsEnabled = lib.config["icons"]
+        if self.iconsEnabled == 1:
+            print("yes")
+        else:
+            print("no")
         self.control_playpause.setText(self.tr("Play"))
         self.control_playpause.pressed.connect(self.play)
 
@@ -916,6 +921,10 @@ class Preferences(QtWidgets.QWidget):
         self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
         self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
+        # Create icon check box and connecing the press signals
+        self.iconCheckBox = QtWidgets.QCheckBox("Enable Icons",self)
+        self.iconCheckBox.stateChanged.connect(self.iconCheckChanged)
+
         # Create other widgets and buttons connecting pressed signals
         self.button_clearConfig = QtWidgets.QPushButton(self.tr("Clear All Config"))
         self.button_clearConfig.pressed.connect(lib.removeConfigDir)
@@ -926,6 +935,7 @@ class Preferences(QtWidgets.QWidget):
         layout.addWidget(self.styleLabel, 0, 0)
         layout.addWidget(self.styleBox, 0, 1)
         layout.addWidget(self.button_clearConfig, 1, 0)
+        layout.addWidget(self.iconCheckBox,1,1)
         self.setLayout(layout)
 
     def styleSelectionChanged(self, index: int):
@@ -934,6 +944,12 @@ class Preferences(QtWidgets.QWidget):
         lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
         lib.updateMainConfig("style", index)
+    def iconCheckChanged(self):
+        # Check if the icon checkbox is checked, if it is write to config file
+        if self.iconCheckBox.isChecked():
+            lib.updateMainConfig("icons",1)
+        else:
+            lib.updateMainConfig("icons",0)
 
 class LyricsWidget(QtWidgets.QWidget):
     #   -   Signal trackChanged
