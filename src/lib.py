@@ -10,6 +10,7 @@ import json
 import mutagen
 import lyricsgenius
 from shutil import rmtree
+import qdarkstyle
 
 # Globals
 progName = "QMusic"
@@ -32,6 +33,7 @@ maxWidth = 16777215
 maxHeight = 16777215
 lyrics_defaultWidth = 300
 lyrics_defaultHeight = 300
+lyricsToken = "AwxNghHLIPG4Zs97LyrQLtRfDZEWTKJdF6ecdYCEmkDcA3CQiCXFZHrkBeUcQvBd"
 lyricsObject: lyricsgenius.Genius = None
 lyricsTokenFileName = "lyricsgenius_token.txt"
 QDarkStyleSrcFileName = "QDarkStyle.qss"
@@ -181,13 +183,12 @@ def getLyricsToken(execDir: str):
         with open(path, "r") as openFile:
             return openFile.read().split("\n")[0]
 
-def setLyricsToken(execDir: str):
+def setLyricsObject(execDir: str):
     # If the token read from disk is valid, set the global lyrics object to a Genius instance from the lyrics token
-    global lyricsObject
-    token = getLyricsToken(execDir)
+    global lyricsToken, lyricsObject
     
-    if token != None and len(token) > 1:
-        lyricsObject = lyricsgenius.Genius(token)
+    if lyricsToken != None and len(lyricsToken) > 1:
+        lyricsObject = lyricsgenius.Genius(lyricsToken)
 
 def setAltLabelStyle(label: QtWidgets.QLabel):
     # Set the alternative properties on the label's stylesheet
@@ -208,8 +209,13 @@ def loadStyleFromSrc(styleFileName: str, execDir: str, styleName: str) -> Style:
     
     return Style(styleName, styleString)
 
-def loadQDarkStyle(execDir: str) -> Style:
+def loadQDarkStyle_fs(execDir: str) -> Style:
     return loadStyleFromSrc(QDarkStyleSrcFileName, execDir, "QDarkStyle")
+
+def loadQDarkStyle_lib():
+    # Append the QDarkStyle PySide2 stylesheet to the styles list
+    global styles
+    styles.append(Style("QDarkStyle", qdarkstyle.load_stylesheet_pyside2()))
 
 def loadConfigJSON(fileName: str, configDirPath: str) -> dict:
     # If the path from the filename and config path exists, read the data from the file as a string and use the JSON load string function to parse the data and return it

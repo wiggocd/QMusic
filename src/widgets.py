@@ -733,9 +733,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path in paths:
                 if path != "":
-                    self.playlist.addMedia(
-                        QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(path))
-                    )
+                    self.addMediaFromFile(path)
+
+        # Emit the playlist model layout changed signal
+        self.playlistModel.layoutChanged.emit()
 
     def writeMediaToConfig(self):
         # Add path from canonical url string of each media item in the playlist to a list and write it to the config
@@ -995,7 +996,7 @@ class LyricsWidget(QtWidgets.QWidget):
         
         self.createWidgets()
         self.createLayout()
-        lib.setLyricsToken(lib.execDir)
+        # lib.setLyricsToken(lib.execDir)
 
         self.trackChanged.connect(self.loadAndSearchFromMetadata)
         if not self.parent.player.media().isNull():

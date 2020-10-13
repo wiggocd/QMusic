@@ -86,9 +86,16 @@ PATH_VERSION = get_relativeToRealPath("__version__.py", execDir)
 interpreter = "python"
 SRCDIRNAME = get_relativeToRealPath("src", execDir)
 mainScript = os.path.join(SRCDIRNAME, "main.py")
+
 OUTDIR = get_relativeToRealPath("dist", execDir)
-OUTFILE = OUTDIR + os.path.sep + NAME
-OUTAPP = OUTFILE + ".app"
+# EXECPATH = OUTDIR + os.path.sep + NAME
+EXECPATH = os.path.join(OUTDIR, NAME, NAME)
+ALIAS_EXECNAME = "qmusic"
+ALIAS_EXECPATH = os.path.join(os.path.sep, "usr", "local", "bin", ALIAS_EXECNAME)
+MAC_APP_FNAME = NAME + os.path.extsep + "app"
+MAC_APPPATH = os.path.join(OUTDIR, MAC_APP_FNAME)
+
+SCRIPT_OUTAPP = EXECPATH + ".app"
 BUILDNAME = get_buildName(mainScript)
 BUILDDIR_PYTHON = get_relativeToRealPath("build", execDir)
 BUILDDIR_NUITKA = get_relativeToRealPath(BUILDNAME + os.path.extsep + "build", execDir)
@@ -97,6 +104,9 @@ RESOURCES = get_relativeToRealPath("resources", execDir)
 SCRIPTSDIR = get_relativeToRealPath("scripts", execDir)
 launchScriptPath = "/usr/local/bin/qmusic"
 launchScriptPermissions = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
+
+NUITKA = "nuitka3"
+PYINSTALLER = "pyinstaller"
 
 OPTIONS_NUITKA = "--follow-imports --standalone"
 OPTIONS_PYINSTALLER = "--onedir --noconsole --name "+NAME+" --icon "+ICON_ICO
@@ -148,12 +158,18 @@ def run_py():
     os.system(interpreter + " \"" + mainScript + "\"")
 
 def run_exec():
-    # Run the executable
-    os.system(OUTFILE)
+    # If it exists, run the built executable, otherwise if the alias/link executable exists, run it instead, and otherwise if the macOS app exists, run it using the system open command
+    # os.system(EXECPATH)
+    if os.path.isfile(EXECPATH):
+        os.system("\""+EXECPATH+"\"")
+    elif os.path.isfile(ALIAS_EXECPATH):
+        os.system("\""+ALIAS_EXECPATH+"\"")
+    elif os.path.isdir(MAC_APPPATH):
+        os.system("open -a \""+MAC_APPPATH+"\"")
 
-def run_macos():
+def run_mac_appscript():
     # Use the darwin specific open shell command
-    os.system("open " + "\"OUTAPP\"")
+    os.system("open " + "\"SCRIPT_OUTAPP\"")
 
 def clean_build():
     # rmtree on each of the build directories
@@ -186,9 +202,9 @@ def clean_all():
     clean_dist()
     clean_egginfo()
 
-def makeapp():
+def makeapp_script():
     # Run the concatenated path to the makeapp script and pass the executable and output path parameters
-    os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + OUTFILE + "\" -o \"" + OUTAPP + "\"")
+    os.system(os.path.join(SCRIPTSDIR, "makeapp") + " \"" + EXECPATH + "\" -o \"" + SCRIPT_OUTAPP + "\"")
 
 def generateLaunchScript():
     return """
@@ -230,6 +246,10 @@ def removeLaunchScript():
     if os.path.isfile(launchScriptPath):
         os.remove(launchScriptPath)
 
+def createApplication():
+    # Run the pyinstaller script with the main script path and options provided
+    os.system(PYINSTALLER+" \""+mainScript+"\" "+OPTIONS_PYINSTALLER)
+
 #   Custom setup commands
 #   For each extension of the Command class from setuptools, provide:
 #       -   description
@@ -241,15 +261,13 @@ class Run(Command):
     description = "Run program"
 
     user_options = [
-        ("interpreter", "i", "Run program from the Python interpreter"),
+        ("interpreter", "i", "[Default] Run program from the Python interpreter"),
         ("exec", "e", "Run the built executable"),
-        ("macos", "m", "Run the built macOS application package")
     ]
 
     def initialize_options(self):
         self.interpreter = None
         self.exec = None
-        self.macos = None
 
     def finalize_options(self):
         ...
@@ -257,8 +275,6 @@ class Run(Command):
     def run(self):
         if self.exec:
             run_exec()
-        elif self.macos:
-            run_macos()
         else:
             run_py()
 
@@ -285,59 +301,61 @@ class Clean(Command):
         else:
             clean_all()
 
-class InstallUnix(Command):
-    description = "Create or remove a script in /usr/bin as a link to launch your local copy of the application"
+class BuildExecutable(Command):
+    description = "Build an application/executable version of the program"
 
     user_options = [
-        ("create", "c", "Create a script in /usr/bin as a link to launch your local copy of the application"),
-        ("remove", "r", "Remove the launcher script")
+        ("alias", "a", "Create an application as an alias/link to your local version, requires the original files and libraries to be in place. Unix only and requires sudo"),
+        ("remove", "r", "If the application was build in alias mode, provide this option with the alias option to remove the alias mode application")
     ]
 
     def initialize_options(self):
-        self.create = None
+        self.alias = None
         self.remove = None
 
     def finalize_options(self):
         ...
 
     def run(self):
-        if not win32:
-            if self.remove:
-                removeLaunchScript()
-            else:
-                createLaunchScript()
+        if self.alias and not win32:
+            if unix_other:
+                if self.remove:
+                    removeLaunchScript()
+                else:
+                    createLaunchScript()
+        else:
+            createApplication()
 
 class Compile(Command):
     description = "Compile executable"
 
     user_options = [
-        ("macApp", "m", "Build executable and create macOS application package")
+        
     ]
 
     def initialize_options(self):
-        self.macApp = None
-
+        ...
+    
     def finalize_options(self):
         ...
 
     def run(self):
-        # os.system("nuitka3 \""+mainScript+"\" -o \""+OUTFILE+"\" "+OPTIONS_NUITKA)
-        if win32:
-            os.system("pyinstaller \""+mainScript+"\" "+OPTIONS_PYINSTALLER)
-        
-        if self.macApp:
-            makeapp()
-
-class MakeApp(Command):
-    description = "Create macOS application package"
-
-    def run(self):
-        makeapp()
+        # Building with nuitka currently broken with PySide2/Shiboken2
+        # os.system(NUITKA+" \""+mainScript+"\" -o \""+EXECPATH)
+        # os.system(NUITKA+" \""+mainScript+"\" "+OPTIONS_NUITKA)
+        ...
 
 long_description = get_long_description()
 about = get_about()
 required = get_requirements()
 interpreter = get_interpreter()
+
+COMMANDS = {
+    "run": Run,
+    "clean": Clean,
+    "build_exec": BuildExecutable,
+    "compile": Compile
+}
 
 # py2app/py2exe
 APP = [mainScript]
@@ -353,14 +371,12 @@ if darwin:
     import shlex
     required.append("py2app")
 elif win32:
-    required.append("pyinstaller")
+    ...
 else:
-    # Other/Unix
+    # Unix/Other
     import shlex
 
-#   Call the setuptools main setup function with all metadata and commands passed as parameters:
-#       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
-if darwin:
+def setup_darwin():
     setup(  
         name=NAME,
         version=about["__version__"],
@@ -384,18 +400,13 @@ if darwin:
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5"
         ],
-        cmdclass={
-            "run": Run,
-            "clean": Clean,
-            "install_unix": InstallUnix,
-            "compile": Compile,
-            "makeapp": MakeApp,
-        },
+        cmdclass=COMMANDS,
         app=APP,
         data_files=DATA_FILES,
         options=OPTIONS
     )
-elif win32:
+
+def setup_win32():
     setup(  
         name=NAME,
         version=about["__version__"],
@@ -419,17 +430,12 @@ elif win32:
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5"
         ],
-        cmdclass={
-            "run": Run,
-            "clean": Clean,
-            "install_unix": InstallUnix,
-            "compile": Compile,
-            "makeapp": MakeApp,
-        },
+        cmdclass=COMMANDS,
         data_files=DATA_FILES,
         options=OPTIONS
     )
-else:
+
+def setup_other():
     setup(  
         name=NAME,
         version=about["__version__"],
@@ -453,11 +459,16 @@ else:
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5"
         ],
-        cmdclass={
-            "run": Run,
-            "clean": Clean,
-            "install_unix": InstallUnix,
-            "compile": Compile,
-            "makeapp": MakeApp,
-        }
+        cmdclass=COMMANDS,
+        data_files=DATA_FILES,
+        options=OPTIONS
     )
+
+#   Call the setuptools main setup function with all metadata and commands passed as parameters:
+#       - name, version, description, long description and content type, author details, url, included packages from find_packages, install_requires for pip packages, exxtras, classifiers and cmdclass for command options amongst others
+if darwin:
+    setup_darwin()
+elif win32:
+    setup_win32()
+else:
+    setup_other()
