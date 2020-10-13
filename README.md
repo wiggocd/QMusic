@@ -2,8 +2,6 @@
 
 QMusic is a simple application for audio playback written in Python using the PySide2 Qt5 framework.
 
-*Please note: PySide2 version 5.14 or lower is used as of now due to a bug in QtMultimedia leading to QUrls containing spaces not working in Qt 5.15.*
-
 
 # Dependencies
 
@@ -24,16 +22,16 @@ Python 3.5 or newer with `python` or `python3` available in your path along with
 
 # Environment Commands
 
-`python3 setup.py build_exec` - build an executable for the current platform on Windows or Unix systems, should output to the `dist` directory and may require sudo on some systems whilst macOS is currently unsupported
+`python3 setup.py build_exec` - build an executable for the current platform on Windows or Unix systems, should output to the `dist` directory and may require sudo on some systems
 
 
 # Other Environment Commands
 
 `python3 setup.py clean` - clean the build environment
 
-`sudo python3 setup.py build_exec -a` - write a script to /usr/local/bin on Unix-like systems from which QMusic is launched
-
 `python3 setup.py py2app -A` - build a macOS app in alias mode, requiring the local files to still be in place
+
+`sudo python3 setup.py build_exec -a` - write a script to /usr/local/bin on Unix-like systems from which QMusic is launched
 
 `python3 setup.py run -e` - run the built executable, app or link mode executable which will be detected
 
