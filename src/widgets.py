@@ -449,11 +449,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_playpause(self):
         # Initialise the play/pause button with text/icon and signal connection
-        self.iconsEnabled = lib.config["icons"]
-        if self.iconsEnabled == 1:
-            print("yes")
-        else:
-            print("no")
         self.control_playpause.setText(self.tr("Play"))
         self.control_playpause.pressed.connect(self.play)
 
@@ -628,7 +623,7 @@ class MainWindow(QtWidgets.QMainWindow):
         playlistClearAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "Playlist|Clear")))
 
         basicHelpAction = QtWidgets.QAction(self.tr("Basic Help"), self)
-        basicHelpAction.triggered.connect(self.show_basichelp)
+        basicHelpAction.triggered.connect(self.showHelp)
         basicHelpAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+H", "Help|Basic Help")))
 
         fileMenu.addAction(closeAction)
@@ -659,6 +654,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def showLyrics(self):
         # Create instance of lyrics widget
         self.lyricsView = LyricsWidget(self)
+    def showHelp(self):
+        # Create instance of lyrics widget
+        self.helpView = HelpWidget(self)
 
     def show_basichelp(self):
         # Show the label
@@ -922,8 +920,8 @@ class Preferences(QtWidgets.QWidget):
         self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
         # Create icon check box and connecing the press signals
-        self.iconCheckBox = QtWidgets.QCheckBox("Enable Icons",self)
-        self.iconCheckBox.stateChanged.connect(self.iconCheckChanged)
+        #self.iconCheckBox = QtWidgets.QCheckBox("Enable Icons",self)
+        #self.iconCheckBox.stateChanged.connect(self.iconCheckChanged)
 
         # Create other widgets and buttons connecting pressed signals
         self.button_clearConfig = QtWidgets.QPushButton(self.tr("Clear All Config"))
@@ -944,12 +942,14 @@ class Preferences(QtWidgets.QWidget):
         lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
         lib.updateMainConfig("style", index)
+    """
     def iconCheckChanged(self):
         # Check if the icon checkbox is checked, if it is write to config file
         if self.iconCheckBox.isChecked():
             lib.updateMainConfig("icons",1)
         else:
             lib.updateMainConfig("icons",0)
+    """
 
 class LyricsWidget(QtWidgets.QWidget):
     #   -   Signal trackChanged
@@ -1120,3 +1120,80 @@ class LyricsWidget(QtWidgets.QWidget):
         self.outputLabel.setText(self.song.lyrics)
         self.lastSearchedSong = self.songText
         self.lastSearchedArtist = self.artistText
+
+class HelpWidget(QtWidgets.QWidget):
+
+    
+    def __init__(self, parent: MainWindow = None):
+        super().__init__()
+
+        self.parent = parent
+
+        if lib.config.__contains__("geometry") and lib.config["geometry"].__contains__("help"):
+            geometry = lib.config["geometry"]["help"]
+            self.left = geometry["left"]
+            self.top = geometry["top"]
+            self.width = geometry["width"]
+            self.height = geometry["height"]
+        elif parent != None:
+            parentGeometry = self.parent.geometry()
+            self.left = parentGeometry.left()
+            self.top = parentGeometry.top()
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+        else:
+            self.left = lib.defaultLeft
+            self.top = lib.defaultTop
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+
+        self.title = lib.progName + lib.titleSeparator + self.tr("Help")
+        self.initUI()
+
+
+    def initUI(self):
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+
+        if not lib.config.__contains__("geometry") or not lib.config["geometry"].__contains__("lyrics"):
+            if not lib.config.__contains__("geometry"):
+                lib.config["geometry"] = {}
+            lib.config["geometry"]["help"] = {}
+            lib.config["geometry"]["help"]["left"] = self.left
+            lib.config["geometry"]["help"]["top"] = self.top
+            lib.config["geometry"]["help"]["width"] = self.width
+            lib.config["geometry"]["help"]["height"] = self.height
+
+        self.songText = ""
+        self.artistText = ""
+        self.lastSearchedSong = None
+        self.lastSearchedArtist = None
+        
+        self.createWidgets()
+        self.createLayout()
+
+        self.show()
+    def moveEvent(self, event: QtGui.QMoveEvent):
+        # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["geometry"]["help"]["left"] = self.geometry().left()
+        lib.config["geometry"]["help"]["top"] = self.geometry().top()
+
+        lib.writeToMainConfigJSON(lib.config)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        # Set the width and height keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["geometry"]["help"]["width"] = self.geometry().width()
+        lib.config["geometry"]["help"]["height"] = self.geometry().height()
+
+        lib.writeToMainConfigJSON(lib.config)
+    def createWidgets(self):
+        self.helpSearch = QtWidgets.QLineEdit()
+        self.helpsearch.textChanged.connect(self.setHelpText)
+
+        self.mainPlayerHelpButton = QtWidgets.QPushButton()
+        self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_icon.png"))
+    
+
+
+
+
