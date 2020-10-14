@@ -1188,10 +1188,70 @@ class HelpWidget(QtWidgets.QWidget):
         lib.writeToMainConfigJSON(lib.config)
     def createWidgets(self):
         self.helpSearch = QtWidgets.QLineEdit()
-        self.helpsearch.textChanged.connect(self.setHelpText)
+        #self.helpsearch.textChanged.connect(self.setHelpText)
+
+        self.searchButton = QtWidgets.QPushButton("Search")
 
         self.mainPlayerHelpButton = QtWidgets.QPushButton()
-        self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_icon.png"))
+        self.mainPlayerHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.mainPlayerHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+
+        self.miniPlayerHelpButton = QtWidgets.QPushButton()
+        self.miniPlayerHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.miniPlayerHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+
+        self.lyricsHelpButton = QtWidgets.QPushButton()
+        self.lyricsHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.lyricsHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+
+        self.mainPlayerHelpLabel = QtWidgets.QLabel("Main Player")
+        self.mainPlayerHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.miniPlayerHelpLabel = QtWidgets.QLabel("Mini Player")
+        self.miniPlayerHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.lyricsHelpLabel = QtWidgets.QLabel("Lyrics")
+        self.lyricsHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        style = lib.config["style"]
+
+        if style == 1:
+            self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_inverted.png"))
+            self.miniPlayerHelpButton.setIcon(QtGui.QIcon("resources/mini_help_inverted.png"))
+            self.lyricsHelpButton.setIcon(QtGui.QIcon("resources/lyrics_help_inverted.png"))
+        else:
+            self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_icon.png"))
+            self.miniPlayerHelpButton.setIcon(QtGui.QIcon("resources/mini_help_icon.png"))
+            self.lyricsHelpButton.setIcon(QtGui.QIcon("resources/lyrics_help_icon.png"))
+    
+    def createLayout(self):
+        searchGroup = QtWidgets.QGroupBox()
+        buttonGroup = QtWidgets.QGroupBox()
+
+        searchLayout = QtWidgets.QGridLayout()
+        searchLayout.setSpacing(10)
+        searchLayout.addWidget(self.helpSearch,0,0)
+        searchLayout.addWidget(self.searchButton,0,1)
+
+        buttonLayout = QtWidgets.QGridLayout()
+        buttonLayout.setSpacing(10)
+        buttonLayout.addWidget(self.mainPlayerHelpButton,0,0)
+        buttonLayout.addWidget(self.miniPlayerHelpButton,0,1)
+        buttonLayout.addWidget(self.lyricsHelpButton,0,2)
+        buttonLayout.addWidget(self.mainPlayerHelpLabel,1,0)
+        buttonLayout.addWidget(self.miniPlayerHelpLabel,1,1)
+        buttonLayout.addWidget(self.lyricsHelpLabel,1,2)
+
+        searchGroup.setLayout(searchLayout)
+        buttonGroup.setLayout(buttonLayout)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(0)
+        layout.addWidget(searchGroup)
+        layout.addWidget(buttonGroup)
+
+        self.setLayout(layout)
+
     
 
 
