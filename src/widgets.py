@@ -862,13 +862,16 @@ class MainWindow(QtWidgets.QMainWindow):
 #
 
 class ClickableLabel(QtWidgets.QLabel):
-    #   -   Call super init from init with text and parent passed
+    #   -   Call super init from init with text and parent passed depending on if they are set or not
     #   -   Emit the pressed signal on the mousePressEvent
 
     pressed = QtCore.Signal()
 
-    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
-        super().__init__(text, parent)
+    def __init__(self, text: str = None, parent: QtWidgets.QWidget = None):
+        if text != None:
+            super().__init__(text, parent)
+        else:
+            super().__init__(parent)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         self.pressed.emit()
