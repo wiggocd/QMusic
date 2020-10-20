@@ -759,11 +759,15 @@ class MainWindow(QtWidgets.QMainWindow):
     #
 
     def removeMedia(self):
-        selectedIndexes = self.playlistView.selectedIndexes()
+        # Get the selected indexes from the playlist view and if there are indexes selected, remove the corresponding media from the playlist and emit the playlist model layout change signal
+        selectedIndexes: List[QtCore.QModelIndex] = self.playlistView.selectedIndexes()
+
         if len(selectedIndexes) > 0:
-            for index in selectedIndexes:
-                self.playlist.removeMedia(index.row(), selectedIndexes[len(selectedIndexes)-1].row())
-                self.playlistModel.layoutChanged.emit()
+            firstIndex = selectedIndexes[0]
+            lastIndex = selectedIndexes[len(selectedIndexes)-1]
+
+            self.playlist.removeMedia(firstIndex.row(), lastIndex.row())
+            self.playlistModel.layoutChanged.emit()
 
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
@@ -943,8 +947,9 @@ class LyricsWidget(QtWidgets.QWidget):
     #       -   Set geometry variables including from the parent window if no geometry was previously recorded in the config for the lyrics widget, otherwise set the previous geometry, as well as title / track detail variables
     #       -   Call initUI
     #   -   initUI:
-    #       -   Set geometry, title and default text
+    #       -   Set the window geometry and title
     #       -   Save the geometry to the config if it has not been previously
+    #       -   Set the default text, boolean variables and loading animation properties
     #       -   Create the widgets and layout, along with setting the lyrics token from the executable directory
     #       -   Connect the track changed signal to the search from metadata function, call serach from metadata if the parent player has media
     #       -   Show
@@ -995,6 +1000,9 @@ class LyricsWidget(QtWidgets.QWidget):
         self.artistText = ""
         self.lastSearchedSong = None
         self.lastSearchedArtist = None
+        self.loadingText = ["Loading", "Loading.", "Loading..", "Loading..."]
+        self.loadedLyrics = False
+        self.loadingAnimationInterval_ms = 100
         
         self.createWidgets()
         self.createLayout()
@@ -1042,6 +1050,10 @@ class LyricsWidget(QtWidgets.QWidget):
         self.scrollView.setWidget(self.outputLabel)
         self.scrollView.setWidgetResizable(True)
 
+        self.infoLabel = QtWidgets.QLabel()
+        lib.setAltLabelStyle(self.infoLabel)
+        self.infoLabel.hide()
+
     def createLayout(self):
         # Create the group boxes, create the grid layout with coordinates added for each widget comprising song details entry, create the layouts for the button and text groups and set the layout
         entryGroup = QtWidgets.QGroupBox()
@@ -1069,6 +1081,7 @@ class LyricsWidget(QtWidgets.QWidget):
         layout.addWidget(entryGroup)
         layout.addWidget(buttonGroup)
         layout.addWidget(textGroup)
+        layout.addWidget(self.infoLabel)
     
         self.setLayout(layout)
 
@@ -1100,8 +1113,42 @@ class LyricsWidget(QtWidgets.QWidget):
             searchThread.start()
 
     def _search(self):
-        # Set the song from the lyrics object, set the output label text from the song lyrics property, set the last searched song and artist
+        # Start the loading animation, set the song from the lyrics object, switch the loading state when finished, set the output label text from the song lyrics property and set the last searched song and artist
+        self.loadedLyrics = False
+        self.loadingAnimation()
         self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
+        self.loadedLyrics = True
+
         self.outputLabel.setText(self.song.lyrics)
         self.lastSearchedSong = self.songText
         self.lastSearchedArtist = self.artistText
+
+    def loadingAnimation(self):
+        # Run the loading animation on another thread
+        self.loadingThread = threading.Thread(target=self._loadingAnimation)
+        self.loadingThread.start()
+
+    def _loadingAnimation(self):
+        # Set the last info text, set the info hidden state, show the info label and whilst the lyrics have not loaded reset the animation index if the animation cycle has completed, set the info label text to the current animation frame text, increment the animation index and sleep for the set interval
+        lastInfoText = self.infoLabel.text()
+
+        if self.infoLabel.isHidden():
+            infoWasHidden = True
+            self.infoLabel.show()
+        
+        animationIndex = 0
+        animationFrameCount = len(self.loadingText)
+
+        while not self.loadedLyrics:
+            if animationIndex == animationFrameCount:
+                animationIndex = 0
+
+            self.infoLabel.setText(self.loadingText[animationIndex])
+            animationIndex += 1
+            time.sleep(self.loadingAnimationInterval_ms / 1000)
+
+        # Reset the info label text to the last recorded value and hide the info label if it was previously hidden
+        self.infoLabel.setText(lastInfoText)
+
+        if infoWasHidden:
+            self.infoLabel.hide()
