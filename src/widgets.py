@@ -34,10 +34,10 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables and reset the metadata
+    #       -   If the player was in the mini layout last launch, switch to the mini layout
+    #       -   Set volume from config dictionary, add the media from the config, set the current playlist index from the config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables and reset the metadata
     #       -   Set variables for fade out and in rates
     #       -   Set the minimum size to the current minimum size
-    #       -   If the player was in the mini layout last launch, switch to the mini layout
     #       -   If the config contains it, load and set the minimum size, otherwise if the layout is set to standard, save the minimum size to the config dictionary and to disk
     #       -   Show
 
@@ -88,14 +88,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.createShortcuts()
 
-        self.setVolume(lib.config["volume"])
-        self.addMediaFromConfig()
-        self.lastMediaCount = 0
-        self.isTransitioning = False
-        self.isFading = False
-        self.lastVolume = self.player.volume()
-        self.metadata = None
-
         self.originalMinimumSize = self.minimumSize()
 
         if lib.config.__contains__("layout"):
@@ -104,6 +96,15 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.currentLayout = lib.config["layout"] = 0
             self.switchLayout(self.currentLayout)
+
+        self.setVolume(lib.config["volume"])
+        self.addMediaFromConfig()
+        self.setPlaylistIndexFromConfig()
+        self.lastMediaCount = 0
+        self.isTransitioning = False
+        self.isFading = False
+        self.lastVolume = self.player.volume()
+        self.metadata = None
 
         if self.currentLayout == 0 and not lib.config.__contains__("mainWindow_minSize"):
             self.originalMinimumSize = self.minimumSize()
@@ -270,10 +271,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlistModel = PlaylistModel(self.playlist)
         self.control_previous.pressed.connect(self.previousTrack)
         self.control_next.pressed.connect(self.nextTrack)
+        self.playlist.currentIndexChanged.connect(self.playlistIndexChanged)
 
-        # Create playlist view and set model, create selection model from playlist view and connect playlist selection changed method
+        # Create playlist view with model passed, create selection model from playlist view and connect playlist selection changed method
         self.playlistView = PlaylistView(self.playlistModel)
-        self.playlistViewSelectionModel = self.playlistView.selectionModel()
+        # self.playlistViewSelectionModel = self.playlistView.selectionModel()
         # self.playlistViewSelectionModel.selectionChanged.connect(self.playlist_selection_changed)
 
         # Set view selection mode to abstract item view extended selection and connect double click signal to switch media
@@ -296,6 +298,26 @@ class MainWindow(QtWidgets.QMainWindow):
             self.play()
         else:
             self.pause()
+
+    def playlistIndexChanged(self, index: int):
+        # Save the playlist index to the config
+        self.savePlaylistIndex(index)
+
+    def savePlaylistIndex(self, index: int):
+        # Write the index to the config dict and proceed to write the dict to the main config JSON
+        lib.config["playlistCurrentIndex"] = index
+        lib.writeToMainConfigJSON(lib.config)
+
+    def setPlaylistIndexFromConfig(self):
+        # If the config dict contains the playlist current index, set the playlist current index, otherwise save the playlist index to the config
+        if lib.config.__contains__("playlistCurrentIndex"):
+            self.playlist.setCurrentIndex(lib.config["playlistCurrentIndex"])
+        else:
+            self.savePlaylistIndex(self.playlist.currentIndex())
+
+        # Play and pause to initialise metadata and cover art
+        self.play()
+        self.pause()
 
     #
     #   Revise
@@ -426,11 +448,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(self.originalMinimumSize)
         self.resize(self.width, self.height)
 
-    #
-    #   Revise
-    #
-
     def playlist_position_changed(self, index: QtCore.QModelIndex):
+        #
+        #   Not used
+        #
+        
         # Set playlist current index from index
         self.playlist.setCurrentIndex(index)
 
