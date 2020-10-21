@@ -34,10 +34,10 @@ class MainWindow(QtWidgets.QMainWindow):
     #       -   Add widgets to layout
     #       -   Create central widget and set layout on central widget
     #       -   Create menus and shortcuts
-    #       -   Set volume from config dictionary, add media from config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables and reset the metadata
+    #       -   If the player was in the mini layout last launch, switch to the mini layout
+    #       -   Set volume from config dictionary, add the media from the config, set the current playlist index from the config, reset lastMediaCount, isTransitioning, isFading, lastVolume and currentLayout variables and reset the metadata
     #       -   Set variables for fade out and in rates
     #       -   Set the minimum size to the current minimum size
-    #       -   If the player was in the mini layout last launch, switch to the mini layout
     #       -   If the config contains it, load and set the minimum size, otherwise if the layout is set to standard, save the minimum size to the config dictionary and to disk
     #       -   Show
 
@@ -88,14 +88,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.createShortcuts()
 
-        self.setVolume(lib.config["volume"])
-        self.addMediaFromConfig()
-        self.lastMediaCount = 0
-        self.isTransitioning = False
-        self.isFading = False
-        self.lastVolume = self.player.volume()
-        self.metadata = None
-
         self.originalMinimumSize = self.minimumSize()
 
         if lib.config.__contains__("layout"):
@@ -104,6 +96,15 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.currentLayout = lib.config["layout"] = 0
             self.switchLayout(self.currentLayout)
+
+        self.setVolume(lib.config["volume"])
+        self.addMediaFromConfig()
+        self.setPlaylistIndexFromConfig()
+        self.lastMediaCount = 0
+        self.isTransitioning = False
+        self.isFading = False
+        self.lastVolume = self.player.volume()
+        self.metadata = None
 
         if self.currentLayout == 0 and not lib.config.__contains__("mainWindow_minSize"):
             self.originalMinimumSize = self.minimumSize()
@@ -270,10 +271,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlistModel = PlaylistModel(self.playlist)
         self.control_previous.pressed.connect(self.previousTrack)
         self.control_next.pressed.connect(self.nextTrack)
+        self.playlist.currentIndexChanged.connect(self.playlistIndexChanged)
 
-        # Create playlist view and set model, create selection model from playlist view and connect playlist selection changed method
+        # Create playlist view with model passed, create selection model from playlist view and connect playlist selection changed method
         self.playlistView = PlaylistView(self.playlistModel)
-        self.playlistViewSelectionModel = self.playlistView.selectionModel()
+        # self.playlistViewSelectionModel = self.playlistView.selectionModel()
         # self.playlistViewSelectionModel.selectionChanged.connect(self.playlist_selection_changed)
 
         # Set view selection mode to abstract item view extended selection and connect double click signal to switch media
@@ -296,6 +298,26 @@ class MainWindow(QtWidgets.QMainWindow):
             self.play()
         else:
             self.pause()
+
+    def playlistIndexChanged(self, index: int):
+        # Save the playlist index to the config
+        self.savePlaylistIndex(index)
+
+    def savePlaylistIndex(self, index: int):
+        # Write the index to the config dict and proceed to write the dict to the main config JSON
+        lib.config["playlistCurrentIndex"] = index
+        lib.writeToMainConfigJSON(lib.config)
+
+    def setPlaylistIndexFromConfig(self):
+        # If the config dict contains the playlist current index, set the playlist current index, otherwise save the playlist index to the config
+        if lib.config.__contains__("playlistCurrentIndex"):
+            self.playlist.setCurrentIndex(lib.config["playlistCurrentIndex"])
+        else:
+            self.savePlaylistIndex(self.playlist.currentIndex())
+
+        # Play and pause to initialise metadata and cover art
+        self.play()
+        self.pause()
 
     #
     #   Revise
@@ -426,11 +448,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(self.originalMinimumSize)
         self.resize(self.width, self.height)
 
-    #
-    #   Revise
-    #
-
     def playlist_position_changed(self, index: QtCore.QModelIndex):
+        #
+        #   Not used
+        #
+        
         # Set playlist current index from index
         self.playlist.setCurrentIndex(index)
 
@@ -762,11 +784,15 @@ class MainWindow(QtWidgets.QMainWindow):
     #
 
     def removeMedia(self):
-        selectedIndexes = self.playlistView.selectedIndexes()
+        # Get the selected indexes from the playlist view and if there are indexes selected, remove the corresponding media from the playlist and emit the playlist model layout change signal
+        selectedIndexes: List[QtCore.QModelIndex] = self.playlistView.selectedIndexes()
+
         if len(selectedIndexes) > 0:
-            for index in selectedIndexes:
-                self.playlist.removeMedia(index.row(), selectedIndexes[len(selectedIndexes)-1].row())
-                self.playlistModel.layoutChanged.emit()
+            firstIndex = selectedIndexes[0]
+            lastIndex = selectedIndexes[len(selectedIndexes)-1]
+
+            self.playlist.removeMedia(firstIndex.row(), lastIndex.row())
+            self.playlistModel.layoutChanged.emit()
 
     def createShortcuts(self):
         # Create QShortcuts from QKeySequences with the shortcut and menu item passed as arguments
@@ -861,13 +887,16 @@ class MainWindow(QtWidgets.QMainWindow):
 #
 
 class ClickableLabel(QtWidgets.QLabel):
-    #   -   Call super init from init with text and parent passed
+    #   -   Call super init from init with text and parent passed depending on if they are set or not
     #   -   Emit the pressed signal on the mousePressEvent
 
     pressed = QtCore.Signal()
 
-    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
-        super().__init__(text, parent)
+    def __init__(self, text: str = None, parent: QtWidgets.QWidget = None):
+        if text != None:
+            super().__init__(text, parent)
+        else:
+            super().__init__(parent)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         self.pressed.emit()
@@ -958,8 +987,9 @@ class LyricsWidget(QtWidgets.QWidget):
     #       -   Set geometry variables including from the parent window if no geometry was previously recorded in the config for the lyrics widget, otherwise set the previous geometry, as well as title / track detail variables
     #       -   Call initUI
     #   -   initUI:
-    #       -   Set geometry, title and default text
+    #       -   Set the window geometry and title
     #       -   Save the geometry to the config if it has not been previously
+    #       -   Set the default text, boolean variables and loading animation properties
     #       -   Create the widgets and layout, along with setting the lyrics token from the executable directory
     #       -   Connect the track changed signal to the search from metadata function, call serach from metadata if the parent player has media
     #       -   Show
@@ -1010,6 +1040,9 @@ class LyricsWidget(QtWidgets.QWidget):
         self.artistText = ""
         self.lastSearchedSong = None
         self.lastSearchedArtist = None
+        self.loadingText = ["Loading", "Loading.", "Loading..", "Loading..."]
+        self.loadedLyrics = False
+        self.loadingAnimationInterval_ms = 100
         
         self.createWidgets()
         self.createLayout()
@@ -1057,6 +1090,10 @@ class LyricsWidget(QtWidgets.QWidget):
         self.scrollView.setWidget(self.outputLabel)
         self.scrollView.setWidgetResizable(True)
 
+        self.infoLabel = QtWidgets.QLabel()
+        lib.setAltLabelStyle(self.infoLabel)
+        self.infoLabel.hide()
+
     def createLayout(self):
         # Create the group boxes, create the grid layout with coordinates added for each widget comprising song details entry, create the layouts for the button and text groups and set the layout
         entryGroup = QtWidgets.QGroupBox()
@@ -1084,6 +1121,7 @@ class LyricsWidget(QtWidgets.QWidget):
         layout.addWidget(entryGroup)
         layout.addWidget(buttonGroup)
         layout.addWidget(textGroup)
+        layout.addWidget(self.infoLabel)
     
         self.setLayout(layout)
 
@@ -1115,11 +1153,44 @@ class LyricsWidget(QtWidgets.QWidget):
             searchThread.start()
 
     def _search(self):
-        # Set the song from the lyrics object, set the output label text from the song lyrics property, set the last searched song and artist
+        # Start the loading animation, set the song from the lyrics object, switch the loading state when finished, set the output label text from the song lyrics property and set the last searched song and artist
+        self.loadedLyrics = False
+        self.loadingAnimation()
         self.song = lib.lyricsObject.search_song(self.songText, self.artistText)
+        self.loadedLyrics = True
+
         self.outputLabel.setText(self.song.lyrics)
         self.lastSearchedSong = self.songText
         self.lastSearchedArtist = self.artistText
+    def loadingAnimation(self):
+        # Run the loading animation on another thread
+        self.loadingThread = threading.Thread(target=self._loadingAnimation)
+        self.loadingThread.start()
+
+    def _loadingAnimation(self):
+        # Set the last info text, set the info hidden state, show the info label and whilst the lyrics have not loaded reset the animation index if the animation cycle has completed, set the info label text to the current animation frame text, increment the animation index and sleep for the set interval
+        lastInfoText = self.infoLabel.text()
+
+        if self.infoLabel.isHidden():
+            infoWasHidden = True
+            self.infoLabel.show()
+        
+        animationIndex = 0
+        animationFrameCount = len(self.loadingText)
+
+        while not self.loadedLyrics:
+            if animationIndex == animationFrameCount:
+                animationIndex = 0
+
+            self.infoLabel.setText(self.loadingText[animationIndex])
+            animationIndex += 1
+            time.sleep(self.loadingAnimationInterval_ms / 1000)
+
+        # Reset the info label text to the last recorded value and hide the info label if it was previously hidden
+        self.infoLabel.setText(lastInfoText)
+
+        if infoWasHidden:
+            self.infoLabel.hide()
 
 class HelpWidget(QtWidgets.QWidget):
 
@@ -1307,3 +1378,4 @@ class HelpWidget(QtWidgets.QWidget):
 
 
 
+    
