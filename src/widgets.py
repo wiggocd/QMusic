@@ -1160,6 +1160,8 @@ class LyricsWidget(QtWidgets.QWidget):
         if self.infoLabel.isHidden():
             infoWasHidden = True
             self.infoLabel.show()
+        else:
+            infoWasHidden = False
         
         animationIndex = 0
         animationFrameCount = len(self.loadingText)
