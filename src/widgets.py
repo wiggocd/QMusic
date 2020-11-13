@@ -644,9 +644,9 @@ class MainWindow(QtWidgets.QMainWindow):
         playlistClearAction.triggered.connect(self.playlist_clear)
         playlistClearAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Backspace", "Playlist|Clear")))
 
-        basicHelpAction = QtWidgets.QAction(self.tr("Basic Help"), self)
-        basicHelpAction.triggered.connect(self.show_basichelp)
-        basicHelpAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+H", "Help|Basic Help")))
+        helpWindowAction = QtWidgets.QAction(self.tr("Help Window"), self)
+        helpWindowAction.triggered.connect(self.showHelp)
+        helpWindowAction.setShortcut(QtGui.QKeySequence(self.tr("Ctrl+Shift+H", "Help|Help Window")))
 
         fileMenu.addAction(closeAction)
         fileMenu.addAction(preferencesAction)
@@ -656,7 +656,7 @@ class MainWindow(QtWidgets.QMainWindow):
         playerMenu.addAction(lyricsAction)
         playlistMenu.addAction(playlistRemoveAction)
         playlistMenu.addAction(playlistClearAction)
-        helpMenu.addAction(basicHelpAction)
+        helpMenu.addAction(helpWindowAction)
 
     def closeWindow(self):
         # Get the active window from the QApplication, quit the application if the active window is the player, otherwise hide and then destroy that window
@@ -676,6 +676,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def showLyrics(self):
         # Create instance of lyrics widget
         self.lyricsView = LyricsWidget(self)
+    def showHelp(self):
+        # Create instance of lyrics widget
+        self.helpView = HelpWidget(self)
 
     def show_basichelp(self):
         # Show the label
@@ -945,6 +948,10 @@ class Preferences(QtWidgets.QWidget):
         self.styleBox.currentIndexChanged.connect(self.styleSelectionChanged)
         self.styleBox.setCurrentIndex(lib.globalStyleIndex)
 
+        # Create icon check box and connecing the press signals
+        #self.iconCheckBox = QtWidgets.QCheckBox("Enable Icons",self)
+        #self.iconCheckBox.stateChanged.connect(self.iconCheckChanged)
+
         # Create other widgets and buttons connecting pressed signals
         self.button_clearConfig = QtWidgets.QPushButton(self.tr("Clear All Config"))
         self.button_clearConfig.pressed.connect(lib.removeConfigDir)
@@ -964,6 +971,14 @@ class Preferences(QtWidgets.QWidget):
         lib.globalStyleSheet = lib.styles[lib.globalStyleIndex].styleSheet
         self.app.setStyleSheet(lib.globalStyleSheet)
         lib.updateMainConfig("style", index)
+    """
+    def iconCheckChanged(self):
+        # Check if the icon checkbox is checked, if it is write to config file
+        if self.iconCheckBox.isChecked():
+            lib.updateMainConfig("icons",1)
+        else:
+            lib.updateMainConfig("icons",0)
+    """
 
 class LyricsWidget(QtWidgets.QWidget):
     #   -   Signal trackChanged
@@ -1147,7 +1162,6 @@ class LyricsWidget(QtWidgets.QWidget):
         self.outputLabel.setText(self.song.lyrics)
         self.lastSearchedSong = self.songText
         self.lastSearchedArtist = self.artistText
-
     def loadingAnimation(self):
         # Run the loading animation on another thread
         self.loadingThread = threading.Thread(target=self._loadingAnimation)
@@ -1179,3 +1193,191 @@ class LyricsWidget(QtWidgets.QWidget):
 
         if infoWasHidden:
             self.infoLabel.hide()
+
+class HelpWidget(QtWidgets.QWidget):
+
+    
+    def __init__(self, parent: MainWindow = None):
+        super().__init__()
+
+        self.parent = parent
+
+        if lib.config.__contains__("geometry") and lib.config["geometry"].__contains__("help"):
+            geometry = lib.config["geometry"]["help"]
+            self.left = geometry["left"]
+            self.top = geometry["top"]
+            self.width = geometry["width"]
+            self.height = geometry["height"]
+        elif parent != None:
+            parentGeometry = self.parent.geometry()
+            self.left = parentGeometry.left()
+            self.top = parentGeometry.top()
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+        else:
+            self.left = lib.defaultLeft
+            self.top = lib.defaultTop
+            self.width = lib.lyrics_defaultWidth
+            self.height = lib.lyrics_defaultHeight
+
+        self.title = lib.progName + lib.titleSeparator + self.tr("Help")
+        self.initUI()
+
+
+    def initUI(self):
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle(self.title)
+        #Load Window Position
+
+        if not lib.config.__contains__("geometry") or not lib.config["geometry"].__contains__("lyrics"):
+            if not lib.config.__contains__("geometry"):
+                lib.config["geometry"] = {}
+            lib.config["geometry"]["help"] = {}
+            lib.config["geometry"]["help"]["left"] = self.left
+            lib.config["geometry"]["help"]["top"] = self.top
+            lib.config["geometry"]["help"]["width"] = self.width
+            lib.config["geometry"]["help"]["height"] = self.height
+        
+        #Set fixed Size
+        self.setFixedSize(550,380)
+
+        self.songText = ""
+        self.artistText = ""
+        self.lastSearchedSong = None
+        self.lastSearchedArtist = None
+        
+        self.createWidgets()
+        self.createLayout()
+
+        self.show()
+    def moveEvent(self, event: QtGui.QMoveEvent):
+        # Set the left and top keys in the geometry key of the config dictionary to the corresponding geometric values and write the config to disk
+        lib.config["geometry"]["help"]["left"] = self.geometry().left()
+        lib.config["geometry"]["help"]["top"] = self.geometry().top()
+
+        lib.writeToMainConfigJSON(lib.config)
+
+    def createWidgets(self):
+
+        #Create Widgets for Help Window
+
+        self.mainPlayerHelpButton = QtWidgets.QPushButton()
+        self.mainPlayerHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.mainPlayerHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+        self.mainPlayerHelpButton.pressed.connect(self.showMainHelp)
+
+        self.miniPlayerHelpButton = QtWidgets.QPushButton()
+        self.miniPlayerHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.miniPlayerHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+        self.miniPlayerHelpButton.pressed.connect(self.showMiniHelp)
+
+        self.lyricsHelpButton = QtWidgets.QPushButton()
+        self.lyricsHelpButton.setIconSize(QtCore.QSize(100,100))
+        self.lyricsHelpButton.setStyleSheet("background-color: rgba(255, 255, 255, 0)")
+        self.lyricsHelpButton.pressed.connect(self.showLyricHelp)
+
+        self.mainPlayerHelpLabel = QtWidgets.QLabel("Main Player")
+        self.mainPlayerHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.miniPlayerHelpLabel = QtWidgets.QLabel("Mini Player")
+        self.miniPlayerHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.lyricsHelpLabel = QtWidgets.QLabel("Lyrics")
+        self.lyricsHelpLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.welcomeLabel = QtWidgets.QLabel("""
+        Welcome to the QMusic Help Window
+        To get started, simply click an icon below""")
+        self.welcomeLabel.setAlignment(QtCore.Qt.AlignVCenter)
+
+        self.mainHelp = QtWidgets.QLabel("""
+        The main player is the main window that will start when you open QMusic. 
+        Here you can add music to the playlist by either:
+        - Dragging and Dropping an audio file
+        - Selecting File -> Open File in the menu bar
+        - Open an entire folder by selecting File -> Open Directory""")
+        self.mainHelp.setAlignment(QtCore.Qt.AlignLeft)
+
+        self.miniHelp = QtWidgets.QLabel("""
+        To enter the Mini Player window, go to Player -> Switch Player Size
+        Here you can use a simplified player without a playlist and volume view
+        To exit simply click Switch Player Size Again""")
+        self.miniHelp.setAlignment(QtCore.Qt.AlignLeft)
+
+        self.lyricHelp = QtWidgets.QLabel("""
+        To enter the Lyrics Window, simply go to Player -> Lyrics
+        Here you can enter a song and artist name to get lyrics from genius.com
+        To exit simply close the window""")
+        self.lyricHelp.setAlignment(QtCore.Qt.AlignLeft)
+        style = lib.config["style"]
+
+        if style == 1:
+            self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_inverted.png"))
+            self.miniPlayerHelpButton.setIcon(QtGui.QIcon("resources/mini_help_inverted.png"))
+            self.lyricsHelpButton.setIcon(QtGui.QIcon("resources/lyrics_help_inverted.png"))
+        else:
+            self.mainPlayerHelpButton.setIcon(QtGui.QIcon("resources/main_help_icon.png"))
+            self.miniPlayerHelpButton.setIcon(QtGui.QIcon("resources/mini_help_icon.png"))
+            self.lyricsHelpButton.setIcon(QtGui.QIcon("resources/lyrics_help_icon.png"))
+    
+    def createLayout(self):
+        # Create Layout
+
+        labelGroup = QtWidgets.QGroupBox()
+        buttonGroup = QtWidgets.QGroupBox()
+
+        buttonLayout = QtWidgets.QGridLayout()
+        buttonLayout.setSpacing(10)
+        buttonLayout.addWidget(self.mainPlayerHelpButton,0,0)
+        buttonLayout.addWidget(self.miniPlayerHelpButton,0,1)
+        buttonLayout.addWidget(self.lyricsHelpButton,0,2)
+        buttonLayout.addWidget(self.mainPlayerHelpLabel,1,0)
+        buttonLayout.addWidget(self.miniPlayerHelpLabel,1,1)
+        buttonLayout.addWidget(self.lyricsHelpLabel,1,2)
+
+        labelLayout = QtWidgets.QGridLayout()
+        labelLayout.setSpacing(0)
+        labelLayout.addWidget(self.mainHelp)
+        labelLayout.addWidget(self.miniHelp)
+        labelLayout.addWidget(self.lyricHelp)
+        labelLayout.addWidget(self.welcomeLabel)
+        self.mainHelp.hide()
+        self.miniHelp.hide()
+        self.lyricHelp.hide()
+
+        buttonGroup.setLayout(buttonLayout)
+        labelGroup.setLayout(labelLayout)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(0)
+        layout.addWidget(labelGroup)
+        layout.addWidget(buttonGroup)
+
+
+        self.setLayout(layout)
+    
+    # Hide and show widgets for each button
+  
+    def showMainHelp(self):
+        self.mainHelp.show()
+        self.miniHelp.hide()
+        self.lyricHelp.hide()
+        self.welcomeLabel.hide()
+    def showMiniHelp(self):
+        self.miniHelp.show()
+        self.mainHelp.hide()
+        self.lyricHelp.hide()
+        self.welcomeLabel.hide()
+    def showLyricHelp(self):   
+        self.lyricHelp.show()
+        self.mainHelp.hide()
+        self.miniHelp.hide()
+        self.welcomeLabel.hide()
+
+        
+        
+
+
+
+
+
+    
