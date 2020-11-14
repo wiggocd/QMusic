@@ -1004,8 +1004,8 @@ class LyricsWidget(QtWidgets.QWidget):
             parentGeometry = self.parent.geometry()
             self.left = parentGeometry.left()
             self.top = parentGeometry.top()
-            self.width = lib.lyrics_defaultWidth
-            self.height = lib.lyrics_defaultHeight
+            self.width = parentGeometry.width()
+            self.height = parentGeometry.height()
         else:
             self.left = lib.defaultLeft
             self.top = lib.defaultTop
@@ -1211,8 +1211,8 @@ class HelpWidget(QtWidgets.QWidget):
             parentGeometry = self.parent.geometry()
             self.left = parentGeometry.left()
             self.top = parentGeometry.top()
-            self.width = lib.lyrics_defaultWidth
-            self.height = lib.lyrics_defaultHeight
+            self.width = parentGeometry.width()
+            self.height = parentGeometry.height()
         else:
             self.left = lib.defaultLeft
             self.top = lib.defaultTop
