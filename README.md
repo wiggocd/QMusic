@@ -17,8 +17,12 @@ Python 3.5 or newer with `python` or `python3` available in your path along with
 
 # Screenshots
 
-<img src="resources/documentation/screenshot.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
+macOS default theme
 
+<img src="resources/documentation/screenshotmacos.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
+Linux QDarkStyle theme
+
+<img src="resources/documentation/screenshotlinux.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
 
 # Environment Commands
 
