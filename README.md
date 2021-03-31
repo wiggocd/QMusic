@@ -18,7 +18,7 @@ Python 3.5 or newer with `python` or `python3` available in your path along with
 
 
 # Screenshots
-Old screenshot on macOS with default theme
+Screenshot on macOS with default theme
 
 <img src="resources/documentation/screenshot.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
 
