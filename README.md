@@ -7,25 +7,27 @@ QMusic is a simple application for audio playback written in Python using the Py
 
 Python 3.5 or newer with `python` or `python3` available in your path along with Python setuptools.
 
+# Build Environment
+
 `python3 setup.py install` - install the required packages
 
 
 # Running
 
-`python3 setup.py run` - run the program using the Python interpreter
+`python3 setup.py run`
 
 
 # Screenshots
-Screenshot on macOS with default theme
+Old screenshot on macOS with default theme
 
 <img src="resources/documentation/screenshot.png" width=320 style="border-radius: 4px; margin-bottom: 10px"/>
 
-# Environment Commands
+# Build Commands
 
-`python3 setup.py build_exec` - build an executable for the current platform on Windows or Unix systems, should output to the `dist` directory and may require sudo on some systems
+`python3 setup.py build_exec` - build an executable for the current platform on Windows or Unix systems, should output to the `dist` directory and requires sudo on Unix systems
 
 
-# Other Environment Commands
+# Other Build Commands
 
 `python3 setup.py clean` - clean the build environment
 
@@ -42,14 +44,4 @@ For more commands, run `python3 setup.py --help-commands`
 
 # Other Notes
 
-There is a token for the lyrics from Genius in the ` ` variable of `src/lib.py`, however if the token in here is invalid, you can replace it with your own by using the Genius API from their website. The documentation can also be found in `reference.txt`.
-
-_______________________
-
-# Other and Non-Functional Commands
-
-**Please note, compilation is currently broken due to Nuitka not supporting PySide2/Shiboken2 whilst the py2app configuration is currently not working with PySide2 in the standard mode.**
-
-~~`python3 setup.py py2app` - build a macOS app~~
-
-~~`python3 setup.py compile` - build an executable using Nuitka~~
+There is a token for the lyrics from Genius in the `lyricsToken` variable of `src/lib.py`, however if the token in here is invalid, you can replace it with your own by using the Genius API from their website. The documentation can also be found in `reference.txt`.
